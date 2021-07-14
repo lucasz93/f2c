@@ -10,8 +10,8 @@ exec.c	16408966	21184
 expr.c	188581a5	68049
 f2c.1	e0db9be5	6910
 f2c.1t	f362126	6978
-f2c.h	e770b7d8	4688
-format.c	118704aa	57913
+f2c.h	36576b	5265
+format.c	2655708	58037
 format.h	b396862	458
 formatdata.c	1350858f	28397
 ftypes.h	18b86a27	1377
@@ -27,7 +27,7 @@ io.c	e3cccd7b	30649
 iob.h	ece45655	548
 lex.c	1d5a048e	34368
 machdefs.h	4950e5b	659
-main.c	f9ddf12c	18825
+main.c	f01f580d	18888
 malloc.c	1cb00990	3964
 mem.c	1cbf32d0	5396
 memset.c	f56469fb	1992

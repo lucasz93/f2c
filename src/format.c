@@ -1619,7 +1619,7 @@ list_decls(FILE *outfile)
     int last_class = -1, last_stg = -1;
     Namep var;
     int Alias, Define, did_one, last_type, type;
-    extern int def_equivs, useauto;
+    extern int def_equivs, useauto, usetls;
     extern chainp new_vars;	/* Compiler-generated locals */
     chainp namelists = 0, refdefs = 0;
     char *ctype;
@@ -1872,6 +1872,8 @@ list_decls(FILE *outfile)
 		    stg == last_stg && !write_header)
 		nice_printf (outfile, ", ");
 	    else {
+		int usetls1 = usetls && (class != CLPROC);
+
 		if (!write_header && ONEOF(stg, M(STGBSS)|
 		    M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
 		    nice_printf (outfile, ";\n");
@@ -1885,10 +1887,10 @@ list_decls(FILE *outfile)
 		    case STGBSS:
 		    case STGEQUIV:
 		    case STGCOMMON:
-			nice_printf (outfile, "static ");
+			nice_printf (outfile, usetls1 ? "static thread_local " : "static ");
 			break;
 		    case STGEXT:
-			nice_printf (outfile, "extern ");
+			nice_printf (outfile, usetls1 ? "extern thread_local " : "extern ");
 			break;
 		    case STGAUTO:
 			break;

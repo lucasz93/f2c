@@ -66,7 +66,7 @@ int maxhash = MAXHASH;
 int maxliterals = MAXLITERALS;
 int maxcontin = MAXCONTIN;
 int maxlablist = MAXLABLIST;
-int extcomm, ext1comm, useauto;
+int extcomm, ext1comm, useauto, usetls;
 int can_include = YES;	/* so we can disable includes for netlib */
 
 static char *def_i2 = "";
@@ -163,6 +163,7 @@ static arg_info table[] = {
 #ifdef TYQUAD
     f2c_entry ("!i8", P_NO_ARGS, P_INT, &use_tyquad, NO),
 #endif
+    f2c_entry ("tls", P_NO_ARGS, P_INT, &usetls, YES),
 
 	/* options omitted from man pages */
 

@@ -118,6 +118,9 @@ or
 .SM SAVE
 statement.
 .TP
+.B -tls
+Make all static variables thread local.
+.TP
 .B -C++
 Output C++ code.
 .TP
