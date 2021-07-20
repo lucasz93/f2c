@@ -1290,7 +1290,7 @@ write_formats(FILE *outfile)
 				first = 0;
 				nice_printf(outfile, "/* Format strings */\n");
 				}
-			nice_printf(outfile, "static char fmt_%ld[] = \"",
+			nice_printf(outfile, "static thread_local char fmt_%ld[] = \"",
 				lp->stateno);
 			if (!(fs = lp->fmtstring))
 				fs = "";
@@ -1314,7 +1314,7 @@ write_ioblocks(FILE *outfile)
 	nice_printf(outfile, "/* Fortran I/O blocks */\n");
 	L = iob_list = (iob_data *)revchain((chainp)iob_list);
 	do {
-		nice_printf(outfile, "static %s %s = { ",
+		nice_printf(outfile, "static thread_local %s %s = { ",
 			L->type, L->name);
 		sep = 0;
 		for(s = L->fields; f = *s; s++) {
@@ -1357,7 +1357,7 @@ write_assigned_fmts(FILE *outfile)
 			}
 		else {
 			comma = did_one ? ";\n" : "";
-			type = np->vstg == STGAUTO ? "char " : "static char ";
+			type = np->vstg == STGAUTO ? "char " : "static thread_local char ";
 			did_one = np->vstg;
 			}
 		nice_printf(outfile, "%s%s*%s_fmt", comma, type, np->fvarname);
@@ -1439,7 +1439,7 @@ write_namelists(chainp nmch, FILE *outfile)
 		if (dimp = v->vdim) {
 			nd = dimp->ndim;
 			nice_printf(outfile,
-				"static ftnlen %s_dims[] = { %d, %ld, %ld",
+				"static thread_local ftnlen %s_dims[] = { %d, %ld, %ld",
 				name, nd,
 				dimp->nelt->constblock.Const.ci,
 				dimp->baseoffset->constblock.Const.ci);
@@ -1448,7 +1448,7 @@ write_namelists(chainp nmch, FILE *outfile)
 				  dimp->dims[i].dimsize->constblock.Const.ci);
 			nice_printf(outfile, " };\n");
 			}
-		nice_printf(outfile, "static Vardesc %s_dv = { \"%s\", %s",
+		nice_printf(outfile, "static thread_local Vardesc %s_dv = { \"%s\", %s",
 			name, to_upper(v->fvarname),
 			type == TYCHAR ? ""
 				: (dimp || oneof_stg(v,v->vstg,
@@ -1477,7 +1477,7 @@ write_namelists(chainp nmch, FILE *outfile)
 			}
 		nice_printf(outfile, " };\n");
 		nice_printf(outfile,
-			"static Namelist %s = { \"%s\", %s_vl, %d };\n",
+			"static thread_local Namelist %s = { \"%s\", %s_vl, %d };\n",
 			name, to_upper(var->fvarname), name, i);
 		}
 		while(nmch = nmch->nextp);
@@ -2094,7 +2094,7 @@ do_uninit_equivs(FILE *outfile, int *did_one)
 	    else {
 		if (*did_one)
 		    nice_printf (outfile, ";\n");
-		nice_printf (outfile, "static %s ", c_type_decl(t, 0));
+		nice_printf (outfile, "static thread_local %s ", c_type_decl(t, 0));
 		k = typesize[t];
 	    } /* else */
 	    nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL));

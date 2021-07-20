@@ -376,7 +376,7 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 	}
     values = *Values;
 
-    nice_printf (outfile, "static %s ", c_type_decl (type, 0));
+    nice_printf (outfile, "static thread_local %s ", c_type_decl (type, 0));
 
     if (is_addr)
 	write_nv_ident (outfile, info.addr);
@@ -1100,7 +1100,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			}
 	type_choice[0] = k;
 
-	nice_printf(outfile, "%sstruct {\n", iscomm ? "" : "static ");
+	nice_printf(outfile, "%sstruct {\n", iscomm ? "" : "static thread_local ");
 	next_tab(outfile);
 	loc = loc0 = k = 0;
 	curtype = -1;

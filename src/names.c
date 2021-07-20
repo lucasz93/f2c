@@ -368,7 +368,7 @@ wr_globals(FILE *outfile)
 		if (y = x % hsize)
 			x += y = hsize - y;
 		nice_printf(outfile,
-			"static struct { %s fill; char val[%ld+1];", halign, x);
+			"static thread_local struct { %s fill; char val[%ld+1];", halign, x);
 		nice_printf(outfile, " char fill2[%ld];", hsize - 1);
 		nice_printf(outfile, " } %s_st = { 0,", litname);
 		cb.vleng = ICON(litp->litval.litival2[0]);

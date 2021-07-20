@@ -97,13 +97,13 @@ xsum: xsum.c
 	$(CC) $(CFLAGS) -o xsum xsum.c
 
 #Check validity of transmitted source...
-xsum.out: xsum $b
-	./xsum $b >xsum1.out
-	cmp xsum0.out xsum1.out && mv xsum1.out xsum.out
+#xsum.out: xsum $b
+#	./xsum $b >xsum1.out
+#	cmp xsum0.out xsum1.out && mv xsum1.out xsum.out
 
 #On non-Unix systems that end lines with carriage-return/newline pairs,
 #use "make xsumr.out" rather than "make xsum.out".  The -r flag ignores
 #carriage-return characters.
-xsumr.out: xsum $b
-	./xsum -r $b >xsum1.out
-	cmp xsum0.out xsum1.out && mv xsum1.out xsumr.out
+#xsumr.out: xsum $b
+#	./xsum -r $b >xsum1.out
+#	cmp xsum0.out xsum1.out && mv xsum1.out xsumr.out
