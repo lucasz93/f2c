@@ -1608,6 +1608,7 @@ ref_defs(FILE *outfile, chainp refdefs)
 #ifdef KR_headers
 list_decls(outfile)
 	FILE *outfile;
+	FILE *outhdr;
 #else
 list_decls(FILE *outfile)
 #endif
@@ -1619,7 +1620,7 @@ list_decls(FILE *outfile)
     int last_class = -1, last_stg = -1;
     Namep var;
     int Alias, Define, did_one, last_type, type;
-    extern int def_equivs, useauto;
+    extern int def_equivs, useauto, wrap_state;
     extern chainp new_vars;	/* Compiler-generated locals */
     chainp namelists = 0, refdefs = 0;
     char *ctype;

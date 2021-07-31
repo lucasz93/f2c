@@ -67,6 +67,9 @@ int maxliterals = MAXLITERALS;
 int maxcontin = MAXCONTIN;
 int maxlablist = MAXLABLIST;
 int extcomm, ext1comm, useauto;
+int wrap_state;
+char *wrap_name = "__state";
+char wrap_module_name[256];
 int can_include = YES;	/* so we can disable includes for netlib */
 
 static char *def_i2 = "";
@@ -163,6 +166,8 @@ static arg_info table[] = {
 #ifdef TYQUAD
     f2c_entry ("!i8", P_NO_ARGS, P_INT, &use_tyquad, NO),
 #endif
+	f2c_entry ("wrap", P_NO_ARGS, P_INT, &wrap_state, YES),
+	f2c_entry ("wrap-name", P_ONE_ARG, P_STRING, &wrap_name, YES),
 
 	/* options omitted from man pages */
 
@@ -510,10 +515,19 @@ main(int argc, char **argv)
 	fileinit();
 	read_Pfiles(ftn_files);
 
+	if (wrap_state)
+	{
+		write_wrapper_header(ftn_files);
+		write_wrapper_source(ftn_files);
+	}
+
 	for(k = 1; ftn_files[k]; k++)
 		if (dofork())
 			break;
 	filename0 = file_name = ftn_files[current_ftn_file = k - 1];
+
+	strcpy(wrap_module_name, filename0);
+	wrap_module_name[strlen(wrap_module_name) - 2] = 0;
 
 	set_tmp_names();
 	sigcatch(0);

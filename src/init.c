@@ -345,6 +345,77 @@ fileinit(Void)
 }
 
  void
+#ifdef KR_headers
+write_wrapper_header(ffiles)
+	char **ffiles;
+#else
+write_wrapper_header(char **ffiles)
+#endif
+{
+	register int i;
+	FILEP header;
+	char buf[256];
+
+	sprintf(outbtail, "%s.h", wrap_name);
+	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
+	    Fatal("main - couldn't open wrapper header");
+
+	for (i = 0; ffiles[i]; i++)
+	{
+		strcpy(buf, ffiles[i]);
+		buf[strlen(buf) - 1] = 'h';
+
+		nice_printf(header, "#include \"%s\"\n", buf);
+	}
+
+	nice_printf(header, "\n");
+	
+	nice_printf(header, "typedef struct {\n");
+	for (i = 0; ffiles[i]; i++)
+	{
+		strcpy(buf, ffiles[i]);
+		buf[strlen(buf) - 2] = 0;
+
+		nice_printf(header, "	%s_t %s;\n", buf, buf);
+	}
+	nice_printf(header, "} %s_t;\n\n", wrap_name);
+
+	fclose(header);
+}
+
+ void
+#ifdef KR_headers
+write_wrapper_source(ffiles)
+	char **ffiles;
+#else
+write_wrapper_source(char **ffiles)
+#endif
+{
+	register int i;
+	FILEP src;
+	char buf[256];
+
+	sprintf(outbtail, "%s.c", wrap_name);
+	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
+	    Fatal("main - couldn't open wrapper source");
+
+	nice_printf(src, "#include \"%s.h\"\n", wrap_name);
+	nice_printf(src, "%s_t state = {\n", wrap_name);
+	for (i = 0; ffiles[i]; i++)
+	{
+		strcpy(buf, ffiles[i]);
+		buf[strlen(buf) - 2] = 0;
+
+		nice_printf(src, "	{\n\
+#include \"%s.inl\"\n\
+	},\n", buf);
+	}
+	nice_printf(src, "};\n");
+
+	fclose(src);
+}
+
+ void
 hashclear(Void)	/* clear hash table */
 {
 	register struct Hashentry *hp;

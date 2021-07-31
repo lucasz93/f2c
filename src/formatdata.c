@@ -59,7 +59,25 @@ list_init_data(FILE **Infile, char *Inname, FILE *outfile)
     if ((sortfp = fopen(sortfname, textread)) == NULL)
 	Fatal("Couldn't open sorted initialization data");
 
-    do_init_data(outfile, sortfp);
+	if (!wrap_state)
+    	do_init_data(outfile, 0, 0, sortfp);
+	else
+	{
+		FILEP outhdr, outinl;
+
+		sprintf(outbtail, "%s.h", wrap_module_name);
+		if ((outhdr = fopen(outbuf, textwrite)) == NULL)
+			Fatal("Couldn't open output header");
+		nice_printf(outhdr, "typedef struct {\n");
+
+		sprintf(outbtail, "%s.inl", wrap_module_name);
+		if ((outinl = fopen(outbuf, textwrite)) == NULL)
+			Fatal("Couldn't open output inl");
+
+		do_init_data(outfile, outhdr, outinl, sortfp);
+
+		nice_printf(outhdr, "} %s_t;\n\n", wrap_module_name);
+	}
     fclose(sortfp);
     scrub(sortfname);
 
@@ -79,11 +97,13 @@ list_init_data(FILE **Infile, char *Inname, FILE *outfile)
 
  int
 #ifdef KR_headers
-do_init_data(outfile, infile)
+do_init_data(outfile, outhdr, outinl, infile)
 	FILE *outfile;
+	FILE *outhdr;
+	FILE *outinl;
 	FILE *infile;
 #else
-do_init_data(FILE *outfile, FILE *infile)
+do_init_data(FILE *outfile, FILE *outhdr, FILE *outinl, FILE *infile)
 #endif
 {
     char varname[NAME_MAX], ovarname[NAME_MAX];
@@ -104,7 +124,7 @@ do_init_data(FILE *outfile, FILE *infile)
 	/* If this is a new variable name, the old initialization has been
 	   completed */
 
-		wr_one_init(outfile, ovarname, &values, keepit);
+		wr_one_init(outfile, outhdr, outinl, ovarname, &values, keepit);
 
 		strcpy (ovarname, varname);
 		values = CHNULL;
@@ -135,7 +155,7 @@ do_init_data(FILE *outfile, FILE *infile)
 
 /* Write out the last declaration */
 
-    wr_one_init (outfile, ovarname, &values, keepit);
+    wr_one_init (outfile, outhdr, outinl, ovarname, &values, keepit);
 
     return did_one;
 } /* do_init_data */
@@ -193,14 +213,17 @@ wr_char_len(FILE *outfile, struct Dimblock *dimp, int n, int extra1)
 
  static void
 #ifdef KR_headers
-write_char_init(outfile, Values, namep)
+write_char_init(outfile, outhdr, outinl, Values, namep)
 	FILE *outfile;
+	FILE *outhdr;
+	FILE *outinl;
 	chainp *Values;
 	Namep namep;
 #else
-write_char_init(FILE *outfile, chainp *Values, Namep namep)
+write_char_init(FILE *outfile, FILE *outhdr, FILE *outinl, chainp *Values, Namep namep)
 #endif
 {
+	char state_namespace[256] = {0};
 	struct Equivblock *eqv;
 	long size;
 	struct Dimblock *dimp;
@@ -239,14 +262,16 @@ write_char_init(FILE *outfile, chainp *Values, Namep namep)
 	eqv->eqvtop = size;
 	eqvmemno = ++lastvarno;
 	eqv->eqvtype = type;
-	wr_equiv_init(outfile, nequiv, Values, 0);
+	wr_equiv_init(outfile, outhdr, outinl, nequiv, Values, 0);
 	def_start(outfile, namep->cvarname, CNULL, "");
+	if (wrap_state)
+		sprintf(state_namespace, "state.%s.", wrap_module_name);
 	if (type == TYCHAR)
-		margin_printf(outfile, "((char *)&equiv_%d)\n\n", eqvmemno);
+		margin_printf(outfile, "((char *)&%sequiv_%d)\n\n", state_namespace, eqvmemno);
 	else
 		margin_printf(outfile, dimp
-			? "((%s *)&equiv_%d)\n\n" : "(*(%s *)&equiv_%d)\n\n",
-			c_type_decl(type,0), eqvmemno);
+			? "((%s *)&equiv_%d)\n\n" : "(*(%s *)&%sequiv_%d)\n\n",
+			c_type_decl(type,0), state_namespace, eqvmemno);
 	}
 
 /* wr_one_init -- outputs the initialization of the variable pointed to
@@ -255,13 +280,15 @@ write_char_init(FILE *outfile, chainp *Values, Namep namep)
 
  void
 #ifdef KR_headers
-wr_one_init(outfile, varname, Values, keepit)
+wr_one_init(outfile, outhdr, outinl, varname, Values, keepit)
 	FILE *outfile;
+	FILE *outhdr;
+	FILE *outinl;
 	char *varname;
 	chainp *Values;
 	int keepit;
 #else
-wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
+wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Values, int keepit)
 #endif
 {
     static int memno;
@@ -295,11 +322,11 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 		/* Must subtract eqvstart when the source file
 		 * contains more than one procedure.
 		 */
-		wr_equiv_init(outfile, eqvmemno = memno - eqvstart, Values, 0);
+		wr_equiv_init(outfile, outhdr, outinl, eqvmemno = memno - eqvstart, Values, 0);
 		goto done;
 	case 'Q':
 		/* COMMON initialization (BLOCK DATA) */
-		wr_equiv_init(outfile, memno, Values, 1);
+		wr_equiv_init(outfile, outhdr, outinl, memno, Values, 1);
 		goto done;
 	case 'v':
 		break;
@@ -334,7 +361,7 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 		cp = (chainp)values->datap;
 		loc = (ftnint)cp->datap;
 		if (loc > last) {
-			write_char_init(outfile, Values, namep);
+			write_char_init(outfile, outhdr, outinl, Values, namep);
 			goto done;
 			}
 		last = (Ulong)cp->nextp->datap == TYBLANK
@@ -363,12 +390,12 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 	loc = 0;
 	for(; values; values = values->nextp) {
 		if ((Ulong)((chainp)values->datap)->nextp->datap == TYCHAR) {
-			write_char_init(outfile, Values, namep);
+			write_char_init(outfile, outhdr, outinl, Values, namep);
 			goto done;
 			}
 		last = ((long) ((chainp) values->datap)->datap) / size;
 		if (last - loc > 4) {
-			write_char_init(outfile, Values, namep);
+			write_char_init(outfile, outhdr, outinl, Values, namep);
 			goto done;
 			}
 		loc = last;
@@ -376,7 +403,10 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 	}
     values = *Values;
 
-    nice_printf (outfile, "static %s ", c_type_decl (type, 0));
+	if (wrap_state)
+		outfile = outhdr;
+
+    nice_printf (outfile, "%s%s ", wrap_state ? "" : "static ", c_type_decl (type, 0));
 
     if (is_addr)
 	write_nv_ident (outfile, info.addr);
@@ -404,10 +434,13 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
     if (array_comment)
 	nice_printf (outfile, "%s", array_comment);
 
-    nice_printf (outfile, " = ");
+    nice_printf (outfile, wrap_state ? ";\n" : " = ");
+
+	if (wrap_state)
+		outfile = outinl;
     wr_output_values (outfile, namep, values);
     ch_ar_dim = -1;
-    nice_printf (outfile, ";\n");
+    nice_printf (outfile, wrap_state ? ",\n" : ";\n");
  done:
     frchain(Values);
 } /* wr_one_init */
@@ -988,13 +1021,15 @@ get_fill(ftnint dloc, ftnint loc, int *t0, int *t1, ftnint *L0, ftnint *L1, int 
 
  void
 #ifdef KR_headers
-wr_equiv_init(outfile, memno, Values, iscomm)
+wr_equiv_init(outfile, outhdr, outhdr, memno, Values, iscomm)
 	FILE *outfile;
+	FILE *outhdr;
+	FILE *outinl;
 	int memno;
 	chainp *Values;
 	int iscomm;
 #else
-wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
+wr_equiv_init(FILE *outfile, FILE *outhdr, FILE *outinl, int memno, chainp *Values, int iscomm)
 #endif
 {
 	struct Equivblock *eqv;
@@ -1100,6 +1135,12 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			}
 	type_choice[0] = k;
 
+	if (wrap_state)
+	{
+		iscomm = 1;
+		outfile = outhdr;
+	}
+
 	nice_printf(outfile, "%sstruct {\n", iscomm ? "" : "static ");
 	next_tab(outfile);
 	loc = loc0 = k = 0;
@@ -1159,9 +1200,21 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			loc += dL;
 			}
 		}
-	nice_printf(outfile, "} %s = { ", iscomm
-		? extsymtab[memno].cextname
-		: equiv_name(eqvmemno, CNULL));
+	if (wrap_state)
+	{
+		nice_printf(outfile, "} %s,\n", iscomm
+			? extsymtab[memno].cextname
+			: equiv_name(eqvmemno, CNULL));
+
+		outfile = outinl;
+		nice_printf(outfile, "{\n");
+	}
+	else
+	{
+		nice_printf(outfile, "} %s = { ", iscomm
+			? extsymtab[memno].cextname
+			: equiv_name(eqvmemno, CNULL));
+	}
 	loc = 0;
 	xfilled &= 2;
 	for(v = values; ; v = v->nextp) {
@@ -1238,7 +1291,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			}
 		loc += typesize[dtype];
 		}
-	nice_printf(outfile, " };\n\n");
+	nice_printf(outfile, " }%c\n\n", wrap_state ? ',' : ';');
 	prev_tab(outfile);
 	frchain(&sentinel);
 	}
