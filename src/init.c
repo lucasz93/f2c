@@ -430,7 +430,7 @@ write_wrapper_source(char **ffiles)
 		nice_printf(src, "},\n");
 		fclose(module_init);
 
-		unlink(module_init);
+		unlink(outbuf);
 	}
 	nice_printf(src, "};\n");
 
