@@ -839,7 +839,7 @@ void	endioctl(Void);
 void	endproc(Void);
 void	entrypt Argdcl((int, int, long, Extsym*, chainp));
 int	eqn Argdcl((int, char*, char*));
-char*	equiv_name Argdcl((int, char*));
+char*	equiv_name Argdcl((int, char*, int));
 void	err Argdcl((char*));
 void	err66 Argdcl((char*));
 void	errext Argdcl((char*));

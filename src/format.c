@@ -32,6 +32,8 @@ use or performance of this software.
 #include "names.h"
 #include "iob.h"
 
+extern FILEP outhdr, outinl;
+
 int c_output_line_length = DEF_C_LINE_LENGTH;
 
 int last_was_label;	/* Boolean used to generate semicolons
@@ -1608,7 +1610,6 @@ ref_defs(FILE *outfile, chainp refdefs)
 #ifdef KR_headers
 list_decls(outfile)
 	FILE *outfile;
-	FILE *outhdr;
 #else
 list_decls(FILE *outfile)
 #endif
@@ -1731,7 +1732,7 @@ list_decls(FILE *outfile)
 
 	do_uninit_equivs (outfile, &did_one);
 
-	if (did_one)
+	if (!wrap_state && did_one)
 	    nice_printf (outfile, ";\n\n");
     } /* if new_vars */
 
@@ -1865,17 +1866,19 @@ list_decls(FILE *outfile)
 	    Alias = oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON));
 	    if (Define = (Alias && def_equivs)) {
 		if (!write_header)
-			nice_printf(outfile, ";\n");
+			nice_printf(wrap_state && last_class != CLPROC && (/*last_stg == STGBSS || */last_stg == STGEQUIV || last_stg == STGCOMMON) ? outhdr : outfile, ";\n");
 		def_start(outfile, var->cvarname, CNULL, "(");
 		goto Alias1;
 		}
-	    else if (type == last_type && class == last_class &&
+	    else if (!wrap_state && type == last_type && class == last_class &&
 		    stg == last_stg && !write_header)
 		nice_printf (outfile, ", ");
 	    else {
+		int wrap_state1 = wrap_state && (class != CLPROC);
+
 		if (!write_header && ONEOF(stg, M(STGBSS)|
-		    M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
-		    nice_printf (outfile, ";\n");
+			M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
+			nice_printf (wrap_state && last_class != CLPROC && (/*last_stg == STGBSS || */last_stg == STGEQUIV || last_stg == STGCOMMON) ? outhdr : outfile, ";\n");
 
 		switch (stg) {
 		    case STGARG:
@@ -1886,7 +1889,8 @@ list_decls(FILE *outfile)
 		    case STGBSS:
 		    case STGEQUIV:
 		    case STGCOMMON:
-			nice_printf (outfile, "static ");
+			if (!wrap_state1)
+				nice_printf (outfile, "static ");
 			break;
 		    case STGEXT:
 			nice_printf (outfile, "extern ");
@@ -1907,22 +1911,26 @@ list_decls(FILE *outfile)
 
 		if (type == TYCHAR && halign && class != CLPROC
 		&& ISICON(var->vleng)) {
-			nice_printf(outfile, "struct { %s fill; char val",
+			FILEP o = wrap_state ? outhdr : outfile;
+			nice_printf(o, "struct { %s fill; char val",
 				halign);
-			x = wr_char_len(outfile, var->vdim,
+			x = wr_char_len(o, var->vdim,
 				var->vleng->constblock.Const.ci, 1);
 			if (x %= hsize)
-				nice_printf(outfile, "; char fill2[%ld]",
+				nice_printf(o, "; char fill2[%ld]",
 					hsize - x);
-			nice_printf(outfile, "; } %s_st;\n", var->cvarname);
+			nice_printf(o, "; } %s_st;\n", var->cvarname);
 			def_start(outfile, var->cvarname, CNULL, var->cvarname);
 			margin_printf(outfile, "_st.val\n");
 			last_type = -1;
 			write_header = 2;
 			continue;
 			}
-		nice_printf(outfile, "%s ",
-			c_type_decl(type, class == CLPROC));
+
+			if (wrap_state1 && (/*stg == STGBSS || */stg == STGEQUIV || stg == STGCOMMON))
+				nice_printf(outhdr, "%s ", c_type_decl(type, 0));
+			else
+				nice_printf(outfile, "%s ", c_type_decl(type, class == CLPROC));
 	    } /* else */
 
 /* Character type is really a string type.  Put out a '*' for variable
@@ -1931,9 +1939,9 @@ list_decls(FILE *outfile)
 	    if (type == TYCHAR && class != CLPROC
 		    && (!var->vleng || !ISICON (var -> vleng))
 	    || oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON)))
-		nice_printf (outfile, "*%s", var->cvarname);
+		nice_printf (wrap_state ? outhdr : outfile, "*%s", var->cvarname);
 	    else {
-		nice_printf (outfile, "%s", var->cvarname);
+		nice_printf (wrap_state && class != CLPROC && (/*stg == STGBSS ||*/ stg == STGEQUIV || stg == STGCOMMON) ? outhdr : outfile, "%s", var->cvarname);
 		if (class == CLPROC) {
 			Argtypes *at;
 			if (!(at = var->arginfo)
@@ -1942,7 +1950,7 @@ list_decls(FILE *outfile)
 			proto(outfile, at, var->fvarname);
 			}
 		else if (type == TYCHAR && ISICON ((var -> vleng)))
-			wr_char_len(outfile, var->vdim,
+			wr_char_len(wrap_state && (/*stg == STGBSS || */stg == STGEQUIV || stg == STGCOMMON) ? outhdr : outfile, var->vdim,
 				(int)var->vleng->constblock.Const.ci, 0);
 		else if (var -> vdim &&
 		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON)))
@@ -1964,7 +1972,8 @@ list_decls(FILE *outfile)
    between them */
 
 		if (stg == STGEQUIV) {
-			name = equiv_name(k = var->vardesc.varno, CNULL);
+			var->ismacro = 1;
+			name = equiv_name(k = var->vardesc.varno, CNULL, 0);
 			eb = eqvclass + k;
 			if (eb->eqvinit) {
 				amp = "&";
@@ -2083,25 +2092,52 @@ do_uninit_equivs(FILE *outfile, int *did_one)
     struct Equivblock *eqv, *lasteqv = eqvclass + nequiv;
     int k, last_type = -1, t;
 
-    for (eqv = eqvclass; eqv < lasteqv; eqv++)
-	if (!eqv -> eqvinit && eqv -> eqvtop != eqv -> eqvbottom) {
-	    if (!*did_one)
-		nice_printf (outfile, "/* System generated locals */\n");
-	    t = eqv->eqvtype;
-	    if (last_type == t)
-		nice_printf (outfile, ", ");
-	    else {
+	if (wrap_state)
+	{
+		FILEP outsrc = outfile;
+		
 		if (*did_one)
-		    nice_printf (outfile, ";\n");
-		nice_printf (outfile, "static %s ", c_type_decl(t, 0));
-		k = typesize[t];
-	    } /* else */
-	    nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL));
-	    nice_printf(outfile, "[%ld]",
-		(eqv->eqvtop - eqv->eqvbottom + k - 1) / k);
-	    last_type = t;
-	    *did_one = 1;
-	} /* if !eqv -> eqvinit */
+			nice_printf (outsrc, ";\n");
+
+		outfile = outhdr;
+
+		for (eqv = eqvclass; eqv < lasteqv; eqv++)
+		if (!eqv -> eqvinit && eqv -> eqvtop != eqv -> eqvbottom) {
+			if (!*did_one)
+			nice_printf (outfile, "/* System generated locals */\n");
+			t = eqv->eqvtype;
+			nice_printf (outfile, "%s ", c_type_decl(t, 0));
+			k = typesize[t];
+			nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL, 1));
+			nice_printf(outfile, "[%ld];\n",
+			(eqv->eqvtop - eqv->eqvbottom + k - 1) / k);
+			*did_one = 1;
+		} /* if !eqv -> eqvinit */
+
+		nice_printf(outsrc, "\n");
+	}
+	else
+	{
+		for (eqv = eqvclass; eqv < lasteqv; eqv++)
+		if (!eqv -> eqvinit && eqv -> eqvtop != eqv -> eqvbottom) {
+			if (!*did_one)
+			nice_printf (outfile, "/* System generated locals */\n");
+			t = eqv->eqvtype;
+			if (last_type == t)
+			nice_printf (outfile, ", ");
+			else {
+			if (*did_one)
+				nice_printf (outfile, ";\n");
+			nice_printf (outfile, "static %s ", c_type_decl(t, 0));
+			k = typesize[t];
+			} /* else */
+			nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL, 1));
+			nice_printf(outfile, "[%ld]",
+			(eqv->eqvtop - eqv->eqvbottom + k - 1) / k);
+			last_type = t;
+			*did_one = 1;
+		} /* if !eqv -> eqvinit */
+	}
 } /* do_uninit_equivs */
 
 

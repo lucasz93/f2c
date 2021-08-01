@@ -439,11 +439,9 @@ out_name(FILE *fp, Namep namep, int isdecl)
 
     if (namep->vprocclass == PTHISPROC && namep->vtype != TYSUBR)
 	nice_printf(fp, xretslot[namep->vtype]->user.ident);
-	// LUCASTODO: This will be useful, at some point.
-    else if (!namep->ismacro && !isdecl && wrap_state && (namep->vstg == STGINIT /*|| namep->vstg == STGBSS || namep->vstg == STGEQUIV || namep->vstg == STGCOMMON*/))
-	{
-		nice_printf (fp, "__state.%s.%s", wrap_module_name, namep->cvarname);
-	}
+    else if (!namep->ismacro && !isdecl && wrap_state && (
+		(namep->vstg == STGINIT /*|| namep->vstg == STGBSS*/ || namep->vstg == STGEQUIV || namep->vstg == STGCOMMON)))
+	nice_printf (fp, "__state.%s.%s", wrap_module_name, namep->cvarname);
 	else
 	nice_printf (fp, "%s", namep->cvarname);
 } /* out_name */

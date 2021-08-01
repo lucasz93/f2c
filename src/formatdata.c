@@ -197,8 +197,6 @@ wr_char_len(FILE *outfile, struct Dimblock *dimp, int n, int extra1)
 #ifdef KR_headers
 write_char_init(outfile, Values, namep)
 	FILE *outfile;
-	FILE *outhdr;
-	FILE *outinl;
 	chainp *Values;
 	Namep namep;
 #else
@@ -1115,9 +1113,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 	type_choice[0] = k;
 
 	if (wrap_state)
-	{
 		outfile = outhdr;
-	}
 
 	nice_printf(outfile, "%sstruct {\n", iscomm || wrap_state ? "" : "static ");
 	next_tab(outfile);
@@ -1182,7 +1178,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 	{
 		nice_printf(outfile, "} %s;\n", iscomm
 			? extsymtab[memno].cextname
-			: equiv_name(eqvmemno, CNULL));
+			: equiv_name(eqvmemno, CNULL, 1));
 
 		outfile = outinl;
 		nice_printf(outfile, "{\n");
@@ -1191,7 +1187,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 	{
 		nice_printf(outfile, "} %s = { ", iscomm
 			? extsymtab[memno].cextname
-			: equiv_name(eqvmemno, CNULL));
+			: equiv_name(eqvmemno, CNULL, 1));
 	}
 	loc = 0;
 	xfilled &= 2;

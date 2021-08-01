@@ -361,7 +361,8 @@ wr_globals(FILE *outfile)
 		continue;
 	litname = lit_name(litp);
 	if (!did_one) {
-		margin_printf(wrap_state ? outhdr : outfile, "/* Table of constant values */\n\n");
+		if (!wrap_state)
+			margin_printf(outfile, "/* Table of constant values */\n\n");
 		did_one = 1;
 		}
 	cb.vtype = litp->littype;
@@ -744,11 +745,12 @@ temp_name(char *starter, int num, char *storage)
 
  char *
 #ifdef KR_headers
-equiv_name(memno, store)
+equiv_name(memno, store, isdecl)
 	int memno;
 	char *store;
+	int isdecl;
 #else
-equiv_name(int memno, char *store)
+equiv_name(int memno, char *store, int isdecl)
 #endif
 {
     static char buf[IDENT_LEN];
@@ -757,7 +759,10 @@ equiv_name(int memno, char *store)
     if (store)
 	pointer = store;
 
-    sprintf (pointer, "%s_%d", EQUIV_INIT_NAME, memno);
+	if (isdecl)
+    	sprintf (pointer, "%s_%d", EQUIV_INIT_NAME, memno);
+	else
+		sprintf (pointer, "__state.%s.%s_%d", wrap_module_name, EQUIV_INIT_NAME, memno);
     return pointer;
 } /* equiv_name */
 
