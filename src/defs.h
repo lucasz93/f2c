@@ -64,7 +64,7 @@ extern FILEP blkdfile;		/* BLOCK DATA file */
 extern int current_ftn_file;
 extern int maxcontin;
 
-extern char *blkdfname, *initfname, *sortfname;
+extern char *blkdfname, *initfname, *sortfname, *tmpouthdr, *tmpoutinl;
 extern long headoffset;		/* Since the header block requires data we
 				   don't know about until AFTER each
 				   function has been processed, we keep a
@@ -1043,7 +1043,7 @@ void	wr_abbrevs Argdcl((FILEP, int, chainp));
 char*	wr_ardecls Argdcl((FILE*, struct Dimblock*, long));
 void	wr_array_init Argdcl((FILEP, int, chainp));
 void	wr_common_decls Argdcl((FILEP));
-void	wr_equiv_init Argdcl((FILEP, FILEP, FILEP, int, chainp*, int));
+void	wr_equiv_init Argdcl((FILEP, int, chainp*, int));
 void	wr_globals Argdcl((FILEP));
 void	wr_nv_ident_help Argdcl((FILEP, Addrp));
 void	wr_struct Argdcl((FILEP, chainp));

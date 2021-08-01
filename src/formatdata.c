@@ -35,6 +35,8 @@ typedef unsigned long Ulong;
 
  extern char *initbname;
 
+ extern FILEP outhdr, outinl;
+
  void
 #ifdef KR_headers
 list_init_data(Infile, Inname, outfile)
@@ -59,28 +61,7 @@ list_init_data(FILE **Infile, char *Inname, FILE *outfile)
     if ((sortfp = fopen(sortfname, textread)) == NULL)
 	Fatal("Couldn't open sorted initialization data");
 
-	if (!wrap_state)
-    	do_init_data(outfile, 0, 0, sortfp);
-	else
-	{
-		FILEP outhdr, outinl;
-
-		sprintf(outbtail, "%s.h", wrap_module_name);
-		if ((outhdr = fopen(outbuf, textwrite)) == NULL)
-			Fatal("Couldn't open output header");
-		nice_printf(outhdr, "typedef struct {\n");
-
-		sprintf(outbtail, "%s.inl", wrap_module_name);
-		if ((outinl = fopen(outbuf, textwrite)) == NULL)
-			Fatal("Couldn't open output inl");
-
-		do_init_data(outfile, outhdr, outinl, sortfp);
-
-		nice_printf(outhdr, "} %s_t;\n\n", wrap_module_name);
-
-		fclose(outhdr);
-		fclose(outinl);
-	}
+    do_init_data(outfile, sortfp);
     fclose(sortfp);
     scrub(sortfname);
 
@@ -100,13 +81,11 @@ list_init_data(FILE **Infile, char *Inname, FILE *outfile)
 
  int
 #ifdef KR_headers
-do_init_data(outfile, outhdr, outinl, infile)
+do_init_data(outfile, infile)
 	FILE *outfile;
-	FILE *outhdr;
-	FILE *outinl;
 	FILE *infile;
 #else
-do_init_data(FILE *outfile, FILE *outhdr, FILE *outinl, FILE *infile)
+do_init_data(FILE *outfile, FILE *infile)
 #endif
 {
     char varname[NAME_MAX], ovarname[NAME_MAX];
@@ -127,7 +106,7 @@ do_init_data(FILE *outfile, FILE *outhdr, FILE *outinl, FILE *infile)
 	/* If this is a new variable name, the old initialization has been
 	   completed */
 
-		wr_one_init(outfile, outhdr, outinl, ovarname, &values, keepit);
+		wr_one_init(outfile, ovarname, &values, keepit);
 
 		strcpy (ovarname, varname);
 		values = CHNULL;
@@ -158,7 +137,7 @@ do_init_data(FILE *outfile, FILE *outhdr, FILE *outinl, FILE *infile)
 
 /* Write out the last declaration */
 
-    wr_one_init (outfile, outhdr, outinl, ovarname, &values, keepit);
+    wr_one_init (outfile, ovarname, &values, keepit);
 
     return did_one;
 } /* do_init_data */
@@ -216,14 +195,14 @@ wr_char_len(FILE *outfile, struct Dimblock *dimp, int n, int extra1)
 
  static void
 #ifdef KR_headers
-write_char_init(outfile, outhdr, outinl, Values, namep)
+write_char_init(outfile, Values, namep)
 	FILE *outfile;
 	FILE *outhdr;
 	FILE *outinl;
 	chainp *Values;
 	Namep namep;
 #else
-write_char_init(FILE *outfile, FILE *outhdr, FILE *outinl, chainp *Values, Namep namep)
+write_char_init(FILE *outfile, chainp *Values, Namep namep)
 #endif
 {
 	char state_namespace[256] = {0};
@@ -265,7 +244,7 @@ write_char_init(FILE *outfile, FILE *outhdr, FILE *outinl, chainp *Values, Namep
 	eqv->eqvtop = size;
 	eqvmemno = ++lastvarno;
 	eqv->eqvtype = type;
-	wr_equiv_init(outfile, outhdr, outinl, nequiv, Values, 0);
+	wr_equiv_init(outfile, nequiv, Values, 0);
 	def_start(outfile, namep->cvarname, CNULL, "");
 	namep->ismacro = 1;
 	if (wrap_state)
@@ -284,15 +263,13 @@ write_char_init(FILE *outfile, FILE *outhdr, FILE *outinl, chainp *Values, Namep
 
  void
 #ifdef KR_headers
-wr_one_init(outfile, outhdr, outinl, varname, Values, keepit)
+wr_one_init(outfile, varname, Values, keepit)
 	FILE *outfile;
-	FILE *outhdr;
-	FILE *outinl;
 	char *varname;
 	chainp *Values;
 	int keepit;
 #else
-wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Values, int keepit)
+wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
 #endif
 {
     static int memno;
@@ -326,11 +303,11 @@ wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Va
 		/* Must subtract eqvstart when the source file
 		 * contains more than one procedure.
 		 */
-		wr_equiv_init(outfile, outhdr, outinl, eqvmemno = memno - eqvstart, Values, 0);
+		wr_equiv_init(outfile, eqvmemno = memno - eqvstart, Values, 0);
 		goto done;
 	case 'Q':
 		/* COMMON initialization (BLOCK DATA) */
-		wr_equiv_init(outfile, outhdr, outinl, memno, Values, 1);
+		wr_equiv_init(outfile, memno, Values, 1);
 		goto done;
 	case 'v':
 		break;
@@ -365,7 +342,7 @@ wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Va
 		cp = (chainp)values->datap;
 		loc = (ftnint)cp->datap;
 		if (loc > last) {
-			write_char_init(outfile, outhdr, outinl, Values, namep);
+			write_char_init(outfile, Values, namep);
 			goto done;
 			}
 		last = (Ulong)cp->nextp->datap == TYBLANK
@@ -394,12 +371,12 @@ wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Va
 	loc = 0;
 	for(; values; values = values->nextp) {
 		if ((Ulong)((chainp)values->datap)->nextp->datap == TYCHAR) {
-			write_char_init(outfile, outhdr, outinl, Values, namep);
+			write_char_init(outfile, Values, namep);
 			goto done;
 			}
 		last = ((long) ((chainp) values->datap)->datap) / size;
 		if (last - loc > 4) {
-			write_char_init(outfile, outhdr, outinl, Values, namep);
+			write_char_init(outfile, Values, namep);
 			goto done;
 			}
 		loc = last;
@@ -1025,15 +1002,13 @@ get_fill(ftnint dloc, ftnint loc, int *t0, int *t1, ftnint *L0, ftnint *L1, int 
 
  void
 #ifdef KR_headers
-wr_equiv_init(outfile, outhdr, outhdr, memno, Values, iscomm)
+wr_equiv_init(outfile, memno, Values, iscomm)
 	FILE *outfile;
-	FILE *outhdr;
-	FILE *outinl;
 	int memno;
 	chainp *Values;
 	int iscomm;
 #else
-wr_equiv_init(FILE *outfile, FILE *outhdr, FILE *outinl, int memno, chainp *Values, int iscomm)
+wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 #endif
 {
 	struct Equivblock *eqv;

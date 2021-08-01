@@ -105,6 +105,8 @@ int hsize;	/* for padding under -h */
 int htype;	/* for wr_equiv_init under -h */
 chainp Iargs;
 
+FILEP outhdr = 0, outinl = 0;
+
 #define f2c_entry(swit,count,type,store,size) \
 	p_entry ("-", swit, 0, count, type, store, size)
 
@@ -527,6 +529,12 @@ main(int argc, char **argv)
 	set_tmp_names();
 	sigcatch(0);
 
+	if ((outhdr = fopen(tmpouthdr, "w+")) == NULL)
+		Fatal("Couldn't open tmp output header");
+
+	if ((outinl = fopen(tmpoutinl, "w+")) == NULL)
+		Fatal("Couldn't open tmp output inl");
+
 	c_file   = opf(c_functions, textwrite);
 	pass1_file=opf(p1_file, binwrite);
 	initkey();
@@ -641,6 +649,43 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 		}
 	if (c2d != 2)
 		fclose (c_output);
+
+	/* Write the actual header and initialization files. */
+	if (wrap_state)
+	{
+		long hdrsz, inlsz;
+		
+		hdrsz = ftell(outhdr);
+		inlsz = ftell(outinl);
+
+		if (hdrsz || inlsz)
+		{
+			FILEP actualhdr, actualinl;
+
+			sprintf(outbtail, "%s.h", wrap_module_name);
+			if ((actualhdr = fopen(outbuf, textwrite)) == NULL)
+				Fatal("Couldn't open output header");
+			nice_printf(actualhdr, "typedef struct {\n");
+
+			sprintf(outbtail, "%s.inl", wrap_module_name);
+			if ((actualinl = fopen(outbuf, textwrite)) == NULL)
+				Fatal("Couldn't open output inl");
+
+			fseek(outhdr, 0, SEEK_SET);
+			fseek(outinl, 0, SEEK_SET);
+
+			ffilecopy(outhdr, actualhdr);
+			ffilecopy(outinl, actualinl);
+
+			nice_printf(actualhdr, "} %s_t;\n\n", wrap_module_name);
+
+			fclose(actualhdr);
+			fclose(actualinl);
+		}
+		
+		fclose(outhdr);
+		fclose(outinl);
+	}
 
 	/* Have the parent process write the header file once all its children have ended.
 	 * Only then can we know which modules have written state. */
