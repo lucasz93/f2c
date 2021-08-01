@@ -722,6 +722,8 @@ output_literal(FILE *fp, long memno, Constp cp)
     if (litp >= lastlit)
 	out_const (fp, cp);
     else {
+	if (wrap_state)
+		nice_printf (fp, "__state.%s.", wrap_module_name);
 	nice_printf (fp, "%s", lit_name (litp));
 	litp->lituse++;
 	}
