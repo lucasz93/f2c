@@ -364,12 +364,15 @@ write_wrapper_header(char **ffiles)
 
 	for (i = 0; ffiles[i]; i++)
 	{
+		FILEP module_hdr;
+
 		strcpy(outbtail, ffiles[i]);
 		outbtail[strlen(outbtail) - 1] = 'h';
-		if (access(outbuf, F_OK))
+		if ((module_hdr = fopen(outbuf, textread)) == NULL)
 			continue;
 
-		nice_printf(header, "#include \"%s\"\n", outbtail);
+		ffilecopy(module_hdr, header);
+		fclose(module_hdr);
 	}
 
 	nice_printf(header, "\n");
@@ -382,6 +385,7 @@ write_wrapper_header(char **ffiles)
 		if (access(outbuf, F_OK))
 			continue;
 
+		unlink(outbuf);
 		outbtail[strlen(outbtail) - 2] = 0;
 
 		nice_printf(header, "	%s_t %s;\n", outbtail, outbtail);
@@ -413,17 +417,20 @@ write_wrapper_source(char **ffiles)
 	nice_printf(src, "%s_t __state = {\n", wrap_name);
 	for (i = 0; ffiles[i]; i++)
 	{
-		strcpy(outbtail, ffiles[i]);
-		outbtail[strlen(outbtail) - 1] = 'h';
-		if (access(outbuf, F_OK))
-			continue;
-			
-		strcpy(buf, ffiles[i]);
-		buf[strlen(buf) - 2] = 0;
+		FILEP module_init;
 
-		nice_printf(src, "	{\n\
-#include \"%s.inl\"\n\
-	},\n", buf);
+		strcpy(outbtail, ffiles[i]);
+		outbtail[strlen(outbtail) - 1] = 0;
+		strcat(outbtail, "inl");
+		if ((module_init = fopen(outbuf, textread)) == NULL)
+			continue;
+
+		nice_printf(src, "/* %s */\n{\n", outbtail);
+		ffilecopy(module_init, src);
+		nice_printf(src, "},\n");
+		fclose(module_init);
+
+		unlink(module_init);
 	}
 	nice_printf(src, "};\n");
 

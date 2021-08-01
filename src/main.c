@@ -658,12 +658,6 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 		hdrsz = ftell(outhdr);
 		inlsz = ftell(outinl);
 
-		sprintf(outbtail, "%s.h", wrap_module_name);
-		unlink(outbuf);
-
-		sprintf(outbtail, "%s.inl", wrap_module_name);
-		unlink(outbuf);
-
 		if (hdrsz || inlsz)
 		{
 			FILEP actualhdr, actualinl;
