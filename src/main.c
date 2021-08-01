@@ -25,6 +25,7 @@ extern char F2C_version[];
 
 #include "defs.h"
 #include "parse.h"
+#include <sys/wait.h>
 
 int complex_seen, dcomplex_seen;
 
@@ -515,12 +516,6 @@ main(int argc, char **argv)
 	fileinit();
 	read_Pfiles(ftn_files);
 
-	if (wrap_state)
-	{
-		write_wrapper_header(ftn_files);
-		write_wrapper_source(ftn_files);
-	}
-
 	for(k = 1; ftn_files[k]; k++)
 		if (dofork())
 			break;
@@ -610,7 +605,10 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 	if (Ansi == 2)
 		nice_printf(c_output,
 			"#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
-	nice_printf (c_output, "%s#include \"f2c.h\"\n\n", def_i2);
+	nice_printf (c_output, "%s#include \"f2c.h\"\n", def_i2);
+	if (wrap_state)
+		nice_printf (c_output, "#include \"%s.h\"\n", wrap_name);
+	nice_printf (c_output, "\n\n");
 	if (gflag)
 		nice_printf (c_output, "#line 1 \"%s\"\n", file_name);
 	if (Castargs && typedefs)
@@ -643,6 +641,16 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 		}
 	if (c2d != 2)
 		fclose (c_output);
+
+	/* Have the parent process write the header file once all its children have ended.
+	 * Only then can we know which modules have written state. */
+	if (wrap_state && !ftn_files[current_ftn_file + 1])
+	{
+		while(wait(NULL) > 0);
+
+		write_wrapper_header(ftn_files);
+		write_wrapper_source(ftn_files);
+	}
 
  C_skipped:
 	if(parstate != OUTSIDE)

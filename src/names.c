@@ -640,7 +640,7 @@ wr_struct(FILE *outfile, chainp var_list)
 	    nice_printf (outfile, "*");
 
 	var -> vstg = STGAUTO;
-	out_name (outfile, var);
+	out_name (outfile, var, 0);
 	if (var -> vclass == CLPROC)
 	    nice_printf (outfile, "()");
 	else if (var -> vdim)

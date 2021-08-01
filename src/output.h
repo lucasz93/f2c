@@ -61,4 +61,4 @@ void	expr_out Argdcl((FILEP, tagptr));
 void	out_and_free_statement Argdcl((FILEP, tagptr));
 void	out_end_for Argdcl((FILEP));
 void	out_if Argdcl((FILEP, tagptr));
-void	out_name Argdcl((FILEP, Namep));
+void	out_name Argdcl((FILEP, Namep, int));

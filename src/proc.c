@@ -1806,7 +1806,7 @@ wr_abbrevs(FILE *outfile, int function_head, chainp vars)
 	    nice_printf (outfile, "#define ");
 	else
 	    nice_printf (outfile, "#undef ");
-	out_name (outfile, name);
+	out_name (outfile, name, 0);
 
 	if (function_head) {
 	    Extsym *comm = &extsymtab[name -> vardesc.varno];

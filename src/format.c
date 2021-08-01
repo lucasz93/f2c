@@ -1150,7 +1150,7 @@ listargs(FILE *outfile, struct Entrypoint *entryp, int add_n_, chainp lengths)
 	for (; args; args = args -> nextp)
 		if (arg = (Namep)args->datap) {
 			nice_printf (outfile, "%s", did_one ? ", " : "");
-			out_name (outfile, arg);
+			out_name (outfile, arg, 0);
 			did_one = 1;
 			}
 
@@ -1243,15 +1243,15 @@ list_arg_types(FILE *outfile, struct Entrypoint *entryp, chainp lengths, int add
 				c_type_decl(type, is_ext));
 	    if (class == CLPROC)
 		if (Castargs)
-			out_name(outfile, arg);
+			out_name(outfile, arg, 0);
 		else {
 			nice_printf(outfile, "(*");
-			out_name(outfile, arg);
+			out_name(outfile, arg, 0);
 			nice_printf(outfile, ") %s", parens);
 			}
 	    else {
 		nice_printf (outfile, "*");
-		out_name (outfile, arg);
+		out_name (outfile, arg, 0);
 		}
 
 	    last_type = type;
@@ -1454,7 +1454,7 @@ write_namelists(chainp nmch, FILE *outfile)
 				: (dimp || oneof_stg(v,v->vstg,
 					M(STGEQUIV)|M(STGCOMMON)))
 				? "(char *)" : "(char *)&");
-		out_name(outfile, v);
+		out_name(outfile, v, 0);
 		nice_printf(outfile, dimp ? ", %s_dims" : ", (ftnlen *)0", name);
 		nice_printf(outfile, ", %ld };\n",
 			type != TYCHAR  ? (long)typeconv[type]
@@ -1559,7 +1559,7 @@ ref_defs(FILE *outfile, chainp refdefs)
 		if (var->vsubscrused)
 			var->vsubscrused = 0;
 		else if (!ISCOMPLEX(var->vtype)) {
-			out_name(outfile, var);
+			out_name(outfile, var, 0);
 			nice_printf(outfile, "[%s", vl ? "(" : "");
 			}
 		for(j = 2; j < n; j++)

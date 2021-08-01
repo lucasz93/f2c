@@ -24,6 +24,7 @@ use or performance of this software.
 #include "defs.h"
 #include "output.h"
 #include "iob.h"
+#include <unistd.h>
 
 /* State required for the C output */
 char *fl_fmt_string;		/* Float format string */
@@ -354,18 +355,21 @@ write_wrapper_header(char **ffiles)
 {
 	register int i;
 	FILEP header;
-	char buf[256];
 
 	sprintf(outbtail, "%s.h", wrap_name);
 	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open wrapper header");
 
+	nice_printf(header, "#include \"f2c.h\"\n\n");
+
 	for (i = 0; ffiles[i]; i++)
 	{
-		strcpy(buf, ffiles[i]);
-		buf[strlen(buf) - 1] = 'h';
+		strcpy(outbtail, ffiles[i]);
+		outbtail[strlen(outbtail) - 1] = 'h';
+		if (access(outbuf, F_OK))
+			continue;
 
-		nice_printf(header, "#include \"%s\"\n", buf);
+		nice_printf(header, "#include \"%s\"\n", outbtail);
 	}
 
 	nice_printf(header, "\n");
@@ -373,12 +377,18 @@ write_wrapper_header(char **ffiles)
 	nice_printf(header, "typedef struct {\n");
 	for (i = 0; ffiles[i]; i++)
 	{
-		strcpy(buf, ffiles[i]);
-		buf[strlen(buf) - 2] = 0;
+		strcpy(outbtail, ffiles[i]);
+		outbtail[strlen(outbtail) - 1] = 'h';
+		if (access(outbuf, F_OK))
+			continue;
 
-		nice_printf(header, "	%s_t %s;\n", buf, buf);
+		outbtail[strlen(outbtail) - 2] = 0;
+
+		nice_printf(header, "	%s_t %s;\n", outbtail, outbtail);
 	}
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
+
+	nice_printf(header, "extern %s_t __state;\n\n", wrap_name);
 
 	fclose(header);
 }
@@ -400,9 +410,14 @@ write_wrapper_source(char **ffiles)
 	    Fatal("main - couldn't open wrapper source");
 
 	nice_printf(src, "#include \"%s.h\"\n", wrap_name);
-	nice_printf(src, "%s_t state = {\n", wrap_name);
+	nice_printf(src, "%s_t __state = {\n", wrap_name);
 	for (i = 0; ffiles[i]; i++)
 	{
+		strcpy(outbtail, ffiles[i]);
+		outbtail[strlen(outbtail) - 1] = 'h';
+		if (access(outbuf, F_OK))
+			continue;
+			
 		strcpy(buf, ffiles[i]);
 		buf[strlen(buf) - 2] = 0;
 

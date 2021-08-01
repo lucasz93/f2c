@@ -77,6 +77,9 @@ list_init_data(FILE **Infile, char *Inname, FILE *outfile)
 		do_init_data(outfile, outhdr, outinl, sortfp);
 
 		nice_printf(outhdr, "} %s_t;\n\n", wrap_module_name);
+
+		fclose(outhdr);
+		fclose(outinl);
 	}
     fclose(sortfp);
     scrub(sortfname);
@@ -264,8 +267,9 @@ write_char_init(FILE *outfile, FILE *outhdr, FILE *outinl, chainp *Values, Namep
 	eqv->eqvtype = type;
 	wr_equiv_init(outfile, outhdr, outinl, nequiv, Values, 0);
 	def_start(outfile, namep->cvarname, CNULL, "");
+	namep->ismacro = 1;
 	if (wrap_state)
-		sprintf(state_namespace, "state.%s.", wrap_module_name);
+		sprintf(state_namespace, "__state.%s.", wrap_module_name);
 	if (type == TYCHAR)
 		margin_printf(outfile, "((char *)&%sequiv_%d)\n\n", state_namespace, eqvmemno);
 	else
@@ -411,7 +415,7 @@ wr_one_init(FILE *outfile, FILE *outhdr, FILE *outinl, char *varname, chainp *Va
     if (is_addr)
 	write_nv_ident (outfile, info.addr);
     else
-	out_name (outfile, info.name);
+	out_name (outfile, info.name, 1);
 
     if (namep)
 	is_scalar = namep -> vdim == (struct Dimblock *) NULL;
@@ -1137,11 +1141,10 @@ wr_equiv_init(FILE *outfile, FILE *outhdr, FILE *outinl, int memno, chainp *Valu
 
 	if (wrap_state)
 	{
-		iscomm = 1;
 		outfile = outhdr;
 	}
 
-	nice_printf(outfile, "%sstruct {\n", iscomm ? "" : "static ");
+	nice_printf(outfile, "%sstruct {\n", iscomm || wrap_state ? "" : "static ");
 	next_tab(outfile);
 	loc = loc0 = k = 0;
 	curtype = -1;
@@ -1202,7 +1205,7 @@ wr_equiv_init(FILE *outfile, FILE *outhdr, FILE *outinl, int memno, chainp *Valu
 		}
 	if (wrap_state)
 	{
-		nice_printf(outfile, "} %s,\n", iscomm
+		nice_printf(outfile, "} %s;\n", iscomm
 			? extsymtab[memno].cextname
 			: equiv_name(eqvmemno, CNULL));
 

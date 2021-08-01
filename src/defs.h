@@ -372,6 +372,7 @@ struct Nameblock
 	field vtype;
 	field vclass;
 	field vstg;
+	int ismacro;
 	expptr vleng;		/* length of character string, if applicable */
 	char *fvarname;		/* name in the Fortran source */
 	char *cvarname;		/* name in the resulting C */

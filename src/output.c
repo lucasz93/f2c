@@ -151,7 +151,7 @@ expr_out(FILE *fp, expptr e)
 	return;
 
     switch (e -> tag) {
-	case TNAME:	out_name (fp, (struct Nameblock *) e);
+	case TNAME:	out_name (fp, (struct Nameblock *) e, 0);
 			return;
 
 	case TCONST:	out_const(fp, &e->constblock);
@@ -414,11 +414,12 @@ same_expr(expptr e1, expptr e2)
 
  void
 #ifdef KR_headers
-out_name(fp, namep)
+out_name(fp, namep, isdecl)
 	FILE *fp;
 	Namep namep;
+	int isdecl;
 #else
-out_name(FILE *fp, Namep namep)
+out_name(FILE *fp, Namep namep, int isdecl)
 #endif
 {
     extern int usedefsforcommon;
@@ -438,7 +439,12 @@ out_name(FILE *fp, Namep namep)
 
     if (namep->vprocclass == PTHISPROC && namep->vtype != TYSUBR)
 	nice_printf(fp, xretslot[namep->vtype]->user.ident);
-    else
+	// LUCASTODO: This will be useful, at some point.
+    else if (!namep->ismacro && !isdecl && wrap_state && (namep->vstg == STGINIT /*|| namep->vstg == STGBSS || namep->vstg == STGEQUIV || namep->vstg == STGCOMMON*/))
+	{
+		nice_printf (fp, "__state.%s.%s", wrap_module_name, namep->cvarname);
+	}
+	else
 	nice_printf (fp, "%s", namep->cvarname);
 } /* out_name */
 
@@ -571,7 +577,7 @@ out_addr(FILE *fp, struct Addrblock *addrp)
 		nice_printf(fp, ")");
 		return;
 	    case UNAM_NAME:
-		out_name (fp, addrp -> user.name);
+		out_name (fp, addrp -> user.name, 0);
 		break;
 	    case UNAM_IDENT:
 		if (*(s = addrp->user.ident) == ' ') {
@@ -734,7 +740,7 @@ output_prim(FILE *fp, struct Primblock *primp)
     if (primp == NULL)
 	return;
 
-    out_name (fp, primp -> namep);
+    out_name (fp, primp -> namep, 0);
     if (primp -> argsp)
 	output_arg_list (fp, primp -> argsp);
 
@@ -863,7 +869,7 @@ opconv_fudge(FILE *fp, struct Exprblock *e)
 		switch(lp->tag) {
 			case TNAME:
 				nice_printf(fp, "*(unsigned char *)");
-				out_name(fp, (Namep)lp);
+				out_name(fp, (Namep)lp, 0);
 				return 1;
 			case TCONST:
  tconst:
@@ -1222,7 +1228,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 
 			switch(q->addrblock.uname_tag) {
 			    case UNAM_NAME:
-				out_name(outfile, q->addrblock.user.name);
+				out_name(outfile, q->addrblock.user.name, 0);
 				continue;
 			    case UNAM_IDENT:
 				nice_printf(outfile, "%s",
