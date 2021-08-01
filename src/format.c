@@ -2111,6 +2111,7 @@ do_uninit_equivs(FILE *outfile, int *did_one)
 			nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL, 1));
 			nice_printf(outfile, "[%ld];\n",
 			(eqv->eqvtop - eqv->eqvbottom + k - 1) / k);
+			nice_printf(outinl, "{0},\n");
 			*did_one = 1;
 		} /* if !eqv -> eqvinit */
 
