@@ -694,6 +694,7 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 		while(wait(NULL) > 0);
 
 		write_wrapper_header(ftn_files);
+		write_user_header();
 		write_wrapper_source(ftn_files);
 	}
 

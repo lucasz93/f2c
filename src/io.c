@@ -1325,9 +1325,15 @@ ioset(int type, int offset, register expptr p)
 		q->isarray = 0;
 		q->memoffset = ICON(0);
 		q->uname_tag = UNAM_IDENT;
-		sprintf(q->user.ident, "%s.%s",
-			statstruct ? iob_list->name : ioblkp->user.ident,
-			io_fields[offset + 1]);
+		if (wrap_state && statstruct)
+			sprintf(q->user.ident, "__state.%s.%s.%s",
+				wrap_module_name,
+				statstruct ? iob_list->name : ioblkp->user.ident,
+				io_fields[offset + 1]);
+		else
+			sprintf(q->user.ident, "%s.%s",
+				statstruct ? iob_list->name : ioblkp->user.ident,
+				io_fields[offset + 1]);
 		if (type == TYADDR && p->tag == TCONST
 				   && p->constblock.vtype == TYADDR) {
 			/* kludge */

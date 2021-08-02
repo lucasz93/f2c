@@ -1314,23 +1314,46 @@ write_ioblocks(FILE *outfile)
 	register char *f, **s, *sep;
 
 	nice_printf(outfile, "/* Fortran I/O blocks */\n");
+	if (wrap_state)
+		nice_printf(outhdr, "/* Fortran I/O blocks */\n");
 	L = iob_list = (iob_data *)revchain((chainp)iob_list);
 	do {
-		nice_printf(outfile, "static %s %s = { ",
-			L->type, L->name);
-		sep = 0;
-		for(s = L->fields; f = *s; s++) {
-			if (sep)
-				nice_printf(outfile, sep);
-			sep = ", ";
-			if (*f == '"') {	/* kludge */
-				nice_printf(outfile, "\"");
-				nice_printf(outfile, "%s\"", f+1);
+		if (wrap_state) 
+		{
+			nice_printf(outhdr, "%s %s;\n", L->type, L->name);
+			nice_printf(outinl, "{", L->type, L->name);
+			sep = 0;
+			for(s = L->fields; f = *s; s++) {
+				if (sep)
+					nice_printf(outinl, sep);
+				sep = ", ";
+				if (*f == '"') {	/* kludge */
+					nice_printf(outinl, "\"");
+					nice_printf(outinl, "%s\"", f+1);
+					}
+				else
+					nice_printf(outinl, "%s", f);
 				}
-			else
-				nice_printf(outfile, "%s", f);
-			}
-		nice_printf(outfile, " };\n");
+			nice_printf(outinl, " },\n");
+		}
+		else
+		{
+			nice_printf(outfile, "static %s %s = { ",
+				L->type, L->name);
+			sep = 0;
+			for(s = L->fields; f = *s; s++) {
+				if (sep)
+					nice_printf(outfile, sep);
+				sep = ", ";
+				if (*f == '"') {	/* kludge */
+					nice_printf(outfile, "\"");
+					nice_printf(outfile, "%s\"", f+1);
+					}
+				else
+					nice_printf(outfile, "%s", f);
+				}
+			nice_printf(outfile, " };\n");
+		}
 		}
 		while(L = L->next);
 	nice_printf(outfile, "\n\n");

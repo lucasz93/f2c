@@ -1048,6 +1048,7 @@ void	wr_globals Argdcl((FILEP));
 void	wr_nv_ident_help Argdcl((FILEP, Addrp));
 void	wr_struct Argdcl((FILEP, chainp));
 void    write_wrapper_header Argdcl((char**));
+void    write_user_header(Void);
 void    write_wrapper_source Argdcl((char**));
 void	wronginf Argdcl((Namep));
 void	yyerror Argdcl((char*));

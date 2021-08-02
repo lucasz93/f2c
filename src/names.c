@@ -361,8 +361,7 @@ wr_globals(FILE *outfile)
 		continue;
 	litname = lit_name(litp);
 	if (!did_one) {
-		if (!wrap_state)
-			margin_printf(outfile, "/* Table of constant values */\n\n");
+		margin_printf(wrap_state ? outhdr : outfile, "/* Table of constant values */\n\n");
 		did_one = 1;
 		}
 	cb.vtype = litp->littype;

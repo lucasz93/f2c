@@ -361,6 +361,7 @@ write_wrapper_header(char **ffiles)
 	    Fatal("main - couldn't open wrapper header");
 
 	nice_printf(header, "#include \"f2c.h\"\n\n");
+	nice_printf(header, "#include \"%s_user.h\"\n\n", wrap_name);
 
 	for (i = 0; ffiles[i]; i++)
 	{
@@ -390,9 +391,31 @@ write_wrapper_header(char **ffiles)
 
 		nice_printf(header, "	%s_t %s;\n", outbtail, outbtail);
 	}
+	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
 
 	nice_printf(header, "extern %s_t __state;\n\n", wrap_name);
+
+	fclose(header);
+}
+
+ void
+write_user_header(Void)
+{
+	FILEP header;
+
+	sprintf(outbtail, "%s_user.h", wrap_name);
+	if (!access(outbuf, F_OK))
+		return;
+
+	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
+	    Fatal("main - couldn't open wrapper header");
+
+	nice_printf(header, "#ifdef USER_T\n\
+typedef struct {\n\
+\n\
+} user_t;\n\
+#endif\n", wrap_name);
 
 	fclose(header);
 }
@@ -432,6 +455,14 @@ write_wrapper_source(char **ffiles)
 
 		unlink(outbuf);
 	}
+
+	nice_printf(src, "#ifdef USER_T\n\
+/* user_t.inl */\n\
+{\n\
+#include \"%s_user.inl\"\n\
+}\n\
+#endif\n", wrap_name);
+
 	nice_printf(src, "};\n");
 
 	fclose(src);

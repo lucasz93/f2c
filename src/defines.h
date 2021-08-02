@@ -252,7 +252,7 @@ typedef long int ftnint;
 #define UNAM_REF 6		/* subscript reference with -s */
 
 
-#define IDENT_LEN 31		/* Maximum length user.ident */
+#define IDENT_LEN 47		/* Maximum length user.ident */
 #define MAXNAMELEN 50		/* Maximum Fortran name length */
 
 /* type masks - TYLOGICAL defined in   ftypes   */

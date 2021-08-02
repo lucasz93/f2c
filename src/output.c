@@ -1202,7 +1202,10 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 	if (q->tag == TADDR) {
 		if (q->addrblock.vtype > TYERROR) {
 			/* I/O block */
-			nice_printf(outfile, "&%s", q->addrblock.user.ident);
+			nice_printf(outfile, "&");
+			if (wrap_state && q->addrblock.vtype == TYCILIST && ONEOF(q->addrblock.vstg, /*M(STGBSS)|*/M(STGCOMMON)|M(STGINIT)))
+				nice_printf(outfile, "__state.%s.", wrap_module_name);
+			nice_printf(outfile, "%s", q->addrblock.user.ident);
 			continue;
 			}
 		if (!byvalue && q->addrblock.isarray
