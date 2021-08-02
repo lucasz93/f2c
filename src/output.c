@@ -423,24 +423,30 @@ out_name(FILE *fp, Namep namep, int isdecl)
 #endif
 {
     extern int usedefsforcommon;
+	extern int useauto;
     Extsym *comm;
+	int stg;
+	int useauto1 = useauto && !saveall;
 
     if (namep == NULL)
 	return;
 
+	stg = namep->vstg;
+	if (useauto1 && stg == STGBSS && !namep->vsave)
+		stg = STGAUTO;
+
 /* DON'T want to use oneof_stg() here; need to find the right common name
    */
 
-    if (namep->vstg == STGCOMMON && !namep->vcommequiv && !usedefsforcommon) {
+    if (stg == STGCOMMON && !namep->vcommequiv && !usedefsforcommon) {
 	comm = &extsymtab[namep->vardesc.varno];
 	extern_out(fp, comm);
 	nice_printf(fp, "%d.", comm->curno);
-    } /* if namep -> vstg == STGCOMMON */
+    } /* if stg == STGCOMMON */
 
     if (namep->vprocclass == PTHISPROC && namep->vtype != TYSUBR)
 	nice_printf(fp, xretslot[namep->vtype]->user.ident);
-    else if (!namep->ismacro && !isdecl && wrap_state && (
-		(namep->vstg == STGINIT /*|| namep->vstg == STGBSS*/ || namep->vstg == STGEQUIV || namep->vstg == STGCOMMON)))
+    else if (!namep->ismacro && !isdecl && wrap_state && ONEOF(stg, M(STGINIT)|M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
 	nice_printf (fp, "__state.%s.%s", wrap_module_name, namep->cvarname);
 	else
 	nice_printf (fp, "%s", namep->cvarname);
@@ -1203,7 +1209,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 		if (q->addrblock.vtype > TYERROR) {
 			/* I/O block */
 			nice_printf(outfile, "&");
-			if (wrap_state && q->addrblock.vtype == TYCILIST && ONEOF(q->addrblock.vstg, /*M(STGBSS)|*/M(STGCOMMON)|M(STGINIT)))
+			if (wrap_state && q->addrblock.vtype == TYCILIST && ONEOF(q->addrblock.vstg, M(STGBSS)|M(STGCOMMON)|M(STGINIT)))
 				nice_printf(outfile, "__state.%s.", wrap_module_name);
 			nice_printf(outfile, "%s", q->addrblock.user.ident);
 			continue;

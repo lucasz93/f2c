@@ -1889,7 +1889,7 @@ list_decls(FILE *outfile)
 	    Alias = oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON));
 	    if (Define = (Alias && def_equivs)) {
 		if (!write_header)
-			nice_printf(wrap_state && last_class != CLPROC && (/*last_stg == STGBSS || */last_stg == STGEQUIV || last_stg == STGCOMMON) ? outhdr : outfile, ";\n");
+			nice_printf(wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n");
 		def_start(outfile, var->cvarname, CNULL, "(");
 		goto Alias1;
 		}
@@ -1901,7 +1901,7 @@ list_decls(FILE *outfile)
 
 		if (!write_header && ONEOF(stg, M(STGBSS)|
 			M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
-			nice_printf (wrap_state && last_class != CLPROC && (/*last_stg == STGBSS || */last_stg == STGEQUIV || last_stg == STGCOMMON) ? outhdr : outfile, ";\n");
+			nice_printf (wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n");
 
 		switch (stg) {
 		    case STGARG:
@@ -1950,7 +1950,7 @@ list_decls(FILE *outfile)
 			continue;
 			}
 
-			if (wrap_state1 && (/*stg == STGBSS || */stg == STGEQUIV || stg == STGCOMMON))
+			if (wrap_state1 && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
 				nice_printf(outhdr, "%s ", c_type_decl(type, 0));
 			else
 				nice_printf(outfile, "%s ", c_type_decl(type, class == CLPROC));
@@ -1958,13 +1958,14 @@ list_decls(FILE *outfile)
 
 /* Character type is really a string type.  Put out a '*' for variable
    length strings, and also for equivalences */
+		int is_uninit_array = 0;
 
 	    if (type == TYCHAR && class != CLPROC
 		    && (!var->vleng || !ISICON (var -> vleng))
 	    || oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON)))
 		nice_printf (wrap_state ? outhdr : outfile, "*%s", var->cvarname);
 	    else {
-		nice_printf (wrap_state && class != CLPROC && (/*stg == STGBSS ||*/ stg == STGEQUIV || stg == STGCOMMON) ? outhdr : outfile, "%s", var->cvarname);
+		nice_printf (wrap_state && class != CLPROC && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, "%s", var->cvarname);
 		if (class == CLPROC) {
 			Argtypes *at;
 			if (!(at = var->arginfo)
@@ -1972,16 +1973,23 @@ list_decls(FILE *outfile)
 				at = extsymtab[var->vardesc.varno].arginfo;
 			proto(outfile, at, var->fvarname);
 			}
-		else if (type == TYCHAR && ISICON ((var -> vleng)))
-			wr_char_len(wrap_state && (/*stg == STGBSS || */stg == STGEQUIV || stg == STGCOMMON) ? outhdr : outfile, var->vdim,
+		else if (type == TYCHAR && ISICON ((var -> vleng))) {
+			is_uninit_array = 1;
+			wr_char_len(wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, var->vdim,
 				(int)var->vleng->constblock.Const.ci, 0);
+		}
 		else if (var -> vdim &&
-		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON)))
-			comment = wr_ardecls(outfile, var->vdim, 1L);
+		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON))) {
+			is_uninit_array = 1;
+			comment = wr_ardecls(wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, var->vdim, 1L);
+		}
 		}
 
+		if (wrap_state && ONEOF(stg, M(STGBSS)))
+			nice_printf(outinl, is_uninit_array ? "{0},\n" : "0,\n");
+
 	    if (comment)
-		nice_printf (outfile, "%s", comment);
+		nice_printf (wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, "%s", comment);
  Alias1:
 	    if (Alias) {
 		char *amp, *lp, *name, *rp;
@@ -2080,9 +2088,9 @@ list_decls(FILE *outfile)
     } /* for (entry = hashtab */
 
     if (!write_header)
-	nice_printf (outfile, ";\n\n");
+	nice_printf (wrap_state && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n\n");
     else if (write_header == 2)
-	nice_printf(outfile, "\n");
+	nice_printf(wrap_state ? outhdr : outfile, "\n");
 
 /* Next, namelists, which may reference equivs */
 
