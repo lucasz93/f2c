@@ -131,9 +131,9 @@ set_tmp_names(Void)
 	sprintf(p1_file, "%s/f2c%ld_p1f", tmpdir, pid);
 	sprintf(p1_bakfile, "%s/f2c%ld_p1fb", tmpdir, pid);
 	sprintf(sortfname, "%s/f2c%ld_sort", tmpdir, pid);
-	sprintf(tmp_init_struct_path, "%s/f2c%ld_init_struct", tmpdir, pid);
+	sprintf(tmp_init_struct_path, "%s/f2c%ld_init", tmpdir, pid);
 	sprintf(tmp_init_inl_path, "%s/f2c%ld_init_inl", tmpdir, pid);
-	sprintf(tmp_uninit_struct_path, "%s/f2c%ld_uninit_struct", tmpdir, pid);
+	sprintf(tmp_uninit_struct_path, "%s/f2c%ld_uninit", tmpdir, pid);
 #endif
 	sprintf(initbname, "%s.b", initfname);
 	}
