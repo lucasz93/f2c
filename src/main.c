@@ -105,7 +105,7 @@ int hsize;	/* for padding under -h */
 int htype;	/* for wr_equiv_init under -h */
 chainp Iargs;
 
-FILEP outhdr = 0, outinl = 0;
+FILEP out_init_struct = NULL, out_init_inl = NULL, out_uninit_struct = NULL;
 
 #define f2c_entry(swit,count,type,store,size) \
 	p_entry ("-", swit, 0, count, type, store, size)
@@ -529,11 +529,17 @@ main(int argc, char **argv)
 	set_tmp_names();
 	sigcatch(0);
 
-	if ((outhdr = fopen(tmpouthdr, "w+")) == NULL)
-		Fatal("Couldn't open tmp output header");
+	if (wrap_state)
+	{
+		if ((out_init_struct = fopen(tmp_init_struct_path, "w+")) == NULL)
+			Fatal("Couldn't open tmp initialised struct header");
 
-	if ((outinl = fopen(tmpoutinl, "w+")) == NULL)
-		Fatal("Couldn't open tmp output inl");
+		if ((out_init_inl = fopen(tmp_init_inl_path, "w+")) == NULL)
+			Fatal("Couldn't open tmp initialised struct inl");
+
+		if ((out_uninit_struct = fopen(tmp_uninit_struct_path, "w+")) == NULL)
+			Fatal("Couldn't open tmp uninitialised struct inl");
+	}
 
 	c_file   = opf(c_functions, textwrite);
 	pass1_file=opf(p1_file, binwrite);
@@ -653,38 +659,52 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 	/* Write the actual header and initialization files. */
 	if (wrap_state)
 	{
-		long hdrsz, inlsz;
-		
-		hdrsz = ftell(outhdr);
-		inlsz = ftell(outinl);
+		long init_struct_len = ftell(out_init_struct);
+		long init_inl_len = ftell(out_init_inl);
+		long uninit_struct_len = ftell(out_uninit_struct);
 
-		if (hdrsz || inlsz)
+		if (init_struct_len || uninit_struct_len)
 		{
-			FILEP actualhdr, actualinl;
+			FILEP actualhdr;
 
 			sprintf(outbtail, "%s.h", wrap_module_name);
 			if ((actualhdr = fopen(outbuf, textwrite)) == NULL)
 				Fatal("Couldn't open output header");
+
 			nice_printf(actualhdr, "typedef struct {\n");
+				fseek(out_init_struct, 0, SEEK_SET);
+				ffilecopy(out_init_struct, actualhdr);
+			nice_printf(actualhdr, "} %s_init_t;\n\n", wrap_module_name);
+
+			nice_printf(actualhdr, "typedef struct {\n");
+				fseek(out_init_struct, 0, SEEK_SET);
+				ffilecopy(out_init_struct, actualhdr);
+
+				fseek(out_uninit_struct, 0, SEEK_SET);
+				ffilecopy(out_uninit_struct, actualhdr);
+			nice_printf(actualhdr, "} %s_state_t;\n\n", wrap_module_name);
+
+			fclose(actualhdr);
+		}
+
+		if (init_inl_len)
+		{
+			FILEP actualinl;
 
 			sprintf(outbtail, "%s.inl", wrap_module_name);
 			if ((actualinl = fopen(outbuf, textwrite)) == NULL)
 				Fatal("Couldn't open output inl");
 
-			fseek(outhdr, 0, SEEK_SET);
-			fseek(outinl, 0, SEEK_SET);
+			fseek(out_init_inl, 0, SEEK_SET);
 
-			ffilecopy(outhdr, actualhdr);
-			ffilecopy(outinl, actualinl);
+			ffilecopy(out_init_inl, actualinl);
 
-			nice_printf(actualhdr, "} %s_t;\n\n", wrap_module_name);
-
-			fclose(actualhdr);
 			fclose(actualinl);
 		}
 		
-		fclose(outhdr);
-		fclose(outinl);
+		fclose(out_init_struct);
+		fclose(out_init_inl);
+		fclose(out_uninit_struct);
 	}
 
 	/* Have the parent process write the header file once all its children have ended.

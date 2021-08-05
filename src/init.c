@@ -389,7 +389,7 @@ write_wrapper_header(char **ffiles)
 		unlink(outbuf);
 		outbtail[strlen(outbtail) - 2] = 0;
 
-		nice_printf(header, "	%s_t %s;\n", outbtail, outbtail);
+		nice_printf(header, "	%s_state_t %s;\n", outbtail, outbtail);
 	}
 	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
@@ -436,34 +436,35 @@ write_wrapper_source(char **ffiles)
 	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open wrapper source");
 
-	nice_printf(src, "#include \"%s.h\"\n", wrap_name);
-	nice_printf(src, "%s_t __state = {\n", wrap_name);
-	for (i = 0; ffiles[i]; i++)
+	/* Write the main state header. */
 	{
-		FILEP module_init;
+		nice_printf(src, "#include \"%s.h\"\n", wrap_name);
+		nice_printf(src, "%s_t __state = {\n", wrap_name);
+		for (i = 0; ffiles[i]; i++)
+		{
+			FILEP module_init;
 
-		strcpy(outbtail, ffiles[i]);
-		outbtail[strlen(outbtail) - 1] = 0;
-		strcat(outbtail, "inl");
-		if ((module_init = fopen(outbuf, textread)) == NULL)
-			continue;
+			strcpy(outbtail, ffiles[i]);
+			outbtail[strlen(outbtail) - 1] = 0;
+			strcat(outbtail, "inl");
+			if ((module_init = fopen(outbuf, textread)) == NULL)
+				continue;
 
-		nice_printf(src, "/* %s */\n{\n", outbtail);
-		ffilecopy(module_init, src);
-		nice_printf(src, "},\n");
-		fclose(module_init);
+			nice_printf(src, "/* %s */\n{\n", outbtail);
+			ffilecopy(module_init, src);
+			nice_printf(src, "},\n");
+			fclose(module_init);
 
-		unlink(outbuf);
+			unlink(outbuf);
+		}
+		nice_printf(src, "#ifdef USER_T\n\
+	/* user_t.inl */\n\
+	{\n\
+	#include \"%s_user.inl\"\n\
+	}\n\
+	#endif\n", wrap_name);
+		nice_printf(src, "};\n");
 	}
-
-	nice_printf(src, "#ifdef USER_T\n\
-/* user_t.inl */\n\
-{\n\
-#include \"%s_user.inl\"\n\
-}\n\
-#endif\n", wrap_name);
-
-	nice_printf(src, "};\n");
 
 	fclose(src);
 }

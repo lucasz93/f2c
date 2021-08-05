@@ -32,7 +32,7 @@ use or performance of this software.
 #include "names.h"
 #include "iob.h"
 
-extern FILEP outhdr, outinl;
+extern FILEP out_init_struct, out_init_inl, out_uninit_struct;
 
 int c_output_line_length = DEF_C_LINE_LENGTH;
 
@@ -1315,26 +1315,26 @@ write_ioblocks(FILE *outfile)
 
 	nice_printf(outfile, "/* Fortran I/O blocks */\n");
 	if (wrap_state)
-		nice_printf(outhdr, "/* Fortran I/O blocks */\n");
+		nice_printf(out_init_struct, "/* Fortran I/O blocks */\n");
 	L = iob_list = (iob_data *)revchain((chainp)iob_list);
 	do {
 		if (wrap_state) 
 		{
-			nice_printf(outhdr, "%s %s;\n", L->type, L->name);
-			nice_printf(outinl, "{", L->type, L->name);
+			nice_printf(out_init_struct, "%s %s;\n", L->type, L->name);
+			nice_printf(out_init_inl, "{", L->type, L->name);
 			sep = 0;
 			for(s = L->fields; f = *s; s++) {
 				if (sep)
-					nice_printf(outinl, sep);
+					nice_printf(out_init_inl, sep);
 				sep = ", ";
 				if (*f == '"') {	/* kludge */
-					nice_printf(outinl, "\"");
-					nice_printf(outinl, "%s\"", f+1);
+					nice_printf(out_init_inl, "\"");
+					nice_printf(out_init_inl, "%s\"", f+1);
 					}
 				else
-					nice_printf(outinl, "%s", f);
+					nice_printf(out_init_inl, "%s", f);
 				}
-			nice_printf(outinl, " },\n");
+			nice_printf(out_init_inl, " },\n");
 		}
 		else
 		{
@@ -1889,7 +1889,7 @@ list_decls(FILE *outfile)
 	    Alias = oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON));
 	    if (Define = (Alias && def_equivs)) {
 		if (!write_header)
-			nice_printf(wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n");
+			nice_printf(wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n");
 		def_start(outfile, var->cvarname, CNULL, "(");
 		goto Alias1;
 		}
@@ -1901,7 +1901,7 @@ list_decls(FILE *outfile)
 
 		if (!write_header && ONEOF(stg, M(STGBSS)|
 			M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
-			nice_printf (wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n");
+			nice_printf (wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n");
 
 		switch (stg) {
 		    case STGARG:
@@ -1934,7 +1934,7 @@ list_decls(FILE *outfile)
 
 		if (type == TYCHAR && halign && class != CLPROC
 		&& ISICON(var->vleng)) {
-			FILEP o = wrap_state ? outhdr : outfile;
+			FILEP o = wrap_state ? out_init_struct : outfile;
 			nice_printf(o, "struct { %s fill; char val",
 				halign);
 			x = wr_char_len(o, var->vdim,
@@ -1951,7 +1951,7 @@ list_decls(FILE *outfile)
 			}
 
 			if (wrap_state1 && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
-				nice_printf(outhdr, "%s ", c_type_decl(type, 0));
+				nice_printf(out_init_struct, "%s ", c_type_decl(type, 0));
 			else
 				nice_printf(outfile, "%s ", c_type_decl(type, class == CLPROC));
 	    } /* else */
@@ -1963,9 +1963,9 @@ list_decls(FILE *outfile)
 	    if (type == TYCHAR && class != CLPROC
 		    && (!var->vleng || !ISICON (var -> vleng))
 	    || oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON)))
-		nice_printf (wrap_state ? outhdr : outfile, "*%s", var->cvarname);
+		nice_printf (wrap_state ? out_init_struct : outfile, "*%s", var->cvarname);
 	    else {
-		nice_printf (wrap_state && class != CLPROC && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, "%s", var->cvarname);
+		nice_printf (wrap_state && class != CLPROC && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, "%s", var->cvarname);
 		if (class == CLPROC) {
 			Argtypes *at;
 			if (!(at = var->arginfo)
@@ -1975,21 +1975,21 @@ list_decls(FILE *outfile)
 			}
 		else if (type == TYCHAR && ISICON ((var -> vleng))) {
 			is_uninit_array = 1;
-			wr_char_len(wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, var->vdim,
+			wr_char_len(wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, var->vdim,
 				(int)var->vleng->constblock.Const.ci, 0);
 		}
 		else if (var -> vdim &&
 		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON))) {
 			is_uninit_array = 1;
-			comment = wr_ardecls(wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, var->vdim, 1L);
+			comment = wr_ardecls(wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, var->vdim, 1L);
 		}
 		}
 
 		if (wrap_state && ONEOF(stg, M(STGBSS)))
-			nice_printf(outinl, is_uninit_array ? "{0},\n" : "0,\n");
+			nice_printf(out_init_inl, is_uninit_array ? "{0},\n" : "0,\n");
 
 	    if (comment)
-		nice_printf (wrap_state && ONEOF(stg, MSKSTATIC) ? outhdr : outfile, "%s", comment);
+		nice_printf (wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, "%s", comment);
  Alias1:
 	    if (Alias) {
 		char *amp, *lp, *name, *rp;
@@ -2088,9 +2088,9 @@ list_decls(FILE *outfile)
     } /* for (entry = hashtab */
 
     if (!write_header)
-	nice_printf (wrap_state && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? outhdr : outfile, ";\n\n");
+	nice_printf (wrap_state && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n\n");
     else if (write_header == 2)
-	nice_printf(wrap_state ? outhdr : outfile, "\n");
+	nice_printf(wrap_state ? out_init_struct : outfile, "\n");
 
 /* Next, namelists, which may reference equivs */
 
@@ -2130,7 +2130,7 @@ do_uninit_equivs(FILE *outfile, int *did_one)
 		if (*did_one)
 			nice_printf (outsrc, ";\n");
 
-		outfile = outhdr;
+		outfile = out_init_struct;
 
 		for (eqv = eqvclass; eqv < lasteqv; eqv++)
 		if (!eqv -> eqvinit && eqv -> eqvtop != eqv -> eqvbottom) {
@@ -2142,7 +2142,7 @@ do_uninit_equivs(FILE *outfile, int *did_one)
 			nice_printf(outfile, "%s", equiv_name((int)(eqv - eqvclass), CNULL, 1));
 			nice_printf(outfile, "[%ld];\n",
 			(eqv->eqvtop - eqv->eqvbottom + k - 1) / k);
-			nice_printf(outinl, "{0},\n");
+			nice_printf(out_init_inl, "{0},\n");
 			*did_one = 1;
 		} /* if !eqv -> eqvinit */
 

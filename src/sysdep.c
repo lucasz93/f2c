@@ -33,8 +33,9 @@ char *blkdfname		= "block_data";
 char *p1_file		= "p1_file";
 char *p1_bakfile	= "p1_file.BAK";
 char *sortfname		= "init_file";
-char *tmpouthdr		= "hdr_file";
-char *tmpoutinl		= "inl_file";
+char *tmp_init_struct_path	= "init_header_file";
+char *tmp_init_inl_path	= "init_inl_file";
+char *tmp_uninit_struct_path	= "uninit_header_file";
 char *proto_fname	= "proto_file";
 
 char link_msg[]		= "-lf2c -lm"; /* was "-lF77 -lI77 -lm -lc"; */
@@ -85,15 +86,16 @@ set_tmp_names(Void)
 	if (debugflag == 1)
 		return;
 	k = strlen(tmpdir) + 24;
-	c_functions = (char *)ckalloc(9*k);
+	c_functions = (char *)ckalloc(10*k);
 	initfname = c_functions + k;
 	initbname = initfname + k;
 	blkdfname = initbname + k;
 	p1_file = blkdfname + k;
 	p1_bakfile = p1_file + k;
 	sortfname = p1_bakfile + k;
-	tmpouthdr = sortfname + k;
-	tmpoutinl = tmpouthdr + k;
+	tmp_init_struct_path = sortfname + k;
+	tmp_init_inl_path = tmp_init_struct_path + k;
+	tmp_uninit_struct_path = tmp_init_inl_path + k;
 	{
 #ifdef MSDOS
 	char buf[64], *s, *t;
@@ -118,8 +120,9 @@ set_tmp_names(Void)
 	sprintf(p1_file, "%sf2c_p1f", t);
 	sprintf(p1_bakfile, "%sf2c_p1fb", t);
 	sprintf(sortfname, "%sf2c_sort", t);
-	sprintf(tmpouthdr, "%sf2c_hdr", t);
-	sprintf(tmpoutinl, "%sf2c_inl", t);
+	sprintf(tmp_init_struct_path, "%sf2c_init_struct", t);
+	sprintf(tmp_init_inl_path, "%sf2c_init_inl", t);
+	sprintf(tmp_uninit_struct_path, "%sf2c_uninit_struct", t);
 #else
 	long pid = getpid();
 	sprintf(c_functions, "%s/f2c%ld_func", tmpdir, pid);
@@ -128,8 +131,9 @@ set_tmp_names(Void)
 	sprintf(p1_file, "%s/f2c%ld_p1f", tmpdir, pid);
 	sprintf(p1_bakfile, "%s/f2c%ld_p1fb", tmpdir, pid);
 	sprintf(sortfname, "%s/f2c%ld_sort", tmpdir, pid);
-	sprintf(tmpouthdr, "%s/f2c%ld_hdr", tmpdir, pid);
-	sprintf(tmpoutinl, "%s/f2c%ld_inl", tmpdir, pid);
+	sprintf(tmp_init_struct_path, "%s/f2c%ld_init_struct", tmpdir, pid);
+	sprintf(tmp_init_inl_path, "%s/f2c%ld_init_inl", tmpdir, pid);
+	sprintf(tmp_uninit_struct_path, "%s/f2c%ld_uninit_struct", tmpdir, pid);
 #endif
 	sprintf(initbname, "%s.b", initfname);
 	}

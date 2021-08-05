@@ -35,7 +35,7 @@ typedef unsigned long Ulong;
 
  extern char *initbname;
 
- extern FILEP outhdr, outinl;
+ extern FILEP out_init_struct, out_init_inl, out_uninit_struct;
 
  void
 #ifdef KR_headers
@@ -383,7 +383,7 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
     values = *Values;
 
 	if (wrap_state)
-		outfile = outhdr;
+		outfile = out_init_struct;
 
     nice_printf (outfile, "%s%s ", wrap_state ? "" : "static ", c_type_decl (type, 0));
 
@@ -416,7 +416,7 @@ wr_one_init(FILE *outfile, char *varname, chainp *Values, int keepit)
     nice_printf (outfile, wrap_state ? ";\n" : " = ");
 
 	if (wrap_state)
-		outfile = outinl;
+		outfile = out_init_inl;
     wr_output_values (outfile, namep, values);
     ch_ar_dim = -1;
     nice_printf (outfile, wrap_state ? ",\n" : ";\n");
@@ -1113,7 +1113,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 	type_choice[0] = k;
 
 	if (wrap_state)
-		outfile = outhdr;
+		outfile = out_init_struct;
 
 	nice_printf(outfile, "%sstruct {\n", iscomm || wrap_state ? "" : "static ");
 	next_tab(outfile);
@@ -1180,7 +1180,7 @@ wr_equiv_init(FILE *outfile, int memno, chainp *Values, int iscomm)
 			? extsymtab[memno].cextname
 			: equiv_name(eqvmemno, CNULL, 1));
 
-		outfile = outinl;
+		outfile = out_init_inl;
 		nice_printf(outfile, "{\n");
 	}
 	else
