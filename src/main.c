@@ -671,10 +671,13 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 			if ((actualhdr = fopen(outbuf, textwrite)) == NULL)
 				Fatal("Couldn't open output header");
 
-			nice_printf(actualhdr, "typedef struct {\n");
-				fseek(out_init_struct, 0, SEEK_SET);
-				ffilecopy(out_init_struct, actualhdr);
-			nice_printf(actualhdr, "} %s_init_t;\n\n", wrap_module_name);
+			if (init_struct_len)
+			{
+				nice_printf(actualhdr, "typedef struct {\n");
+					fseek(out_init_struct, 0, SEEK_SET);
+					ffilecopy(out_init_struct, actualhdr);
+				nice_printf(actualhdr, "} %s_init_t;\n\n", wrap_module_name);
+			}
 
 			nice_printf(actualhdr, "typedef struct {\n");
 				fseek(out_init_struct, 0, SEEK_SET);

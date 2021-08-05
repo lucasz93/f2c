@@ -2094,7 +2094,7 @@ list_decls(FILE *outfile)
     } /* for (entry = hashtab */
 
     if (!write_header)
-	nice_printf (wrap_state && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n\n");
+	nice_printf (filep_for_stg(wrap_state, last_stg, outfile), ";\n\n");
     else if (write_header == 2)
 	nice_printf(wrap_state ? out_init_struct : outfile, "\n");
 

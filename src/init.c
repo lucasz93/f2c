@@ -372,6 +372,7 @@ write_wrapper_header(char **ffiles)
 		if ((module_hdr = fopen(outbuf, textread)) == NULL)
 			continue;
 
+		nice_printf(header, "/* -------------------------------------------------------------------------- */\n");
 		ffilecopy(module_hdr, header);
 		fclose(module_hdr);
 	}
@@ -414,7 +415,7 @@ write_user_header(Void)
 	nice_printf(header, "#ifdef USER_T\n\
 typedef struct {\n\
 \n\
-} user_t;\n\
+} %s_user_state_t;\n\
 #endif\n", wrap_name);
 
 	fclose(header);
@@ -455,19 +456,18 @@ write_wrapper_source(char **ffiles)
 
 			nice_printf(src, "%s_init_t %s_init = {\n", outbtail, outbtail);
 			ffilecopy(module_init, src);
-			nice_printf(src, "};\n");
+			nice_printf(src, "};\n\n");
 			fclose(module_init);
 
 			period[0] = '.';
 			unlink(outbuf);
 		}
 		nice_printf(src, "#ifdef USER_T\n\
-	/* user_t.inl */\n\
-	{\n\
-	#include \"%s_user.inl\"\n\
-	}\n\
-	#endif\n", wrap_name);
-		nice_printf(src, "};\n");
+%s_user_state_t user_init = {\n\
+{\n\
+#include \"%s_user.inl\"\n\
+}\n\
+#endif\n", wrap_name, wrap_name);
 	}
 
 	fclose(src);
