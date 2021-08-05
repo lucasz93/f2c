@@ -761,7 +761,7 @@ equiv_name(int memno, char *store, int isdecl)
 	if (isdecl)
     	sprintf (pointer, "%s_%d", EQUIV_INIT_NAME, memno);
 	else
-		sprintf (pointer, "__state.%s.%s_%d", wrap_module_name, EQUIV_INIT_NAME, memno);
+		sprintf (pointer, "__state.%s->%s_%d", wrap_module_name, EQUIV_INIT_NAME, memno);
     return pointer;
 } /* equiv_name */
 

@@ -1629,6 +1629,22 @@ ref_defs(FILE *outfile, chainp refdefs)
 	frchain(&refdefs);
 	}
 
+ FILEP
+#ifdef KR_headers
+filep_for_stg(_wrap_state, stg, outfile)
+	int _wrap_state;
+	int stg;
+	FILEP outfile;
+#else
+filep_for_stg(int _wrap_state, int stg, FILEP outfile)
+#endif
+{
+	if (_wrap_state && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
+		return (stg == STGBSS) ? out_uninit_struct : out_init_struct;
+	else
+		return outfile;
+}
+
  void
 #ifdef KR_headers
 list_decls(outfile)
@@ -1889,7 +1905,7 @@ list_decls(FILE *outfile)
 	    Alias = oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON));
 	    if (Define = (Alias && def_equivs)) {
 		if (!write_header)
-			nice_printf(wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n");
+			nice_printf(filep_for_stg(wrap_state && last_class != CLPROC, last_stg, outfile), ";\n");
 		def_start(outfile, var->cvarname, CNULL, "(");
 		goto Alias1;
 		}
@@ -1901,7 +1917,7 @@ list_decls(FILE *outfile)
 
 		if (!write_header && ONEOF(stg, M(STGBSS)|
 			M(STGEXT)|M(STGAUTO)|M(STGEQUIV)|M(STGCOMMON)))
-			nice_printf (wrap_state && last_class != CLPROC && ONEOF(last_stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, ";\n");
+			nice_printf (filep_for_stg(wrap_state && last_class != CLPROC, last_stg, outfile), ";\n");
 
 		switch (stg) {
 		    case STGARG:
@@ -1950,22 +1966,18 @@ list_decls(FILE *outfile)
 			continue;
 			}
 
-			if (wrap_state1 && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
-				nice_printf(out_init_struct, "%s ", c_type_decl(type, 0));
-			else
-				nice_printf(outfile, "%s ", c_type_decl(type, class == CLPROC));
+			nice_printf(filep_for_stg(wrap_state1, stg, outfile), "%s ", c_type_decl(type, class == CLPROC));
 	    } /* else */
 
 /* Character type is really a string type.  Put out a '*' for variable
    length strings, and also for equivalences */
-		int is_uninit_array = 0;
 
 	    if (type == TYCHAR && class != CLPROC
 		    && (!var->vleng || !ISICON (var -> vleng))
 	    || oneof_stg(var, stg, M(STGEQUIV)|M(STGCOMMON)))
 		nice_printf (wrap_state ? out_init_struct : outfile, "*%s", var->cvarname);
 	    else {
-		nice_printf (wrap_state && class != CLPROC && ONEOF(stg, M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)) ? out_init_struct : outfile, "%s", var->cvarname);
+		nice_printf (filep_for_stg(wrap_state && class != CLPROC, stg, outfile), "%s", var->cvarname);
 		if (class == CLPROC) {
 			Argtypes *at;
 			if (!(at = var->arginfo)
@@ -1973,23 +1985,17 @@ list_decls(FILE *outfile)
 				at = extsymtab[var->vardesc.varno].arginfo;
 			proto(outfile, at, var->fvarname);
 			}
-		else if (type == TYCHAR && ISICON ((var -> vleng))) {
-			is_uninit_array = 1;
-			wr_char_len(wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, var->vdim,
+		else if (type == TYCHAR && ISICON ((var -> vleng)))
+			wr_char_len(filep_for_stg(wrap_state, stg, outfile), var->vdim,
 				(int)var->vleng->constblock.Const.ci, 0);
+		else if (var -> vdim && 
+		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON)))
+			comment = wr_ardecls(filep_for_stg(wrap_state, stg, outfile), var->vdim, 1L);
 		}
-		else if (var -> vdim &&
-		    !oneof_stg (var, stg, M(STGEQUIV)|M(STGCOMMON))) {
-			is_uninit_array = 1;
-			comment = wr_ardecls(wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, var->vdim, 1L);
-		}
-		}
-
-		if (wrap_state && ONEOF(stg, M(STGBSS)))
-			nice_printf(out_init_inl, is_uninit_array ? "{0},\n" : "0,\n");
 
 	    if (comment)
-		nice_printf (wrap_state && ONEOF(stg, MSKSTATIC) ? out_init_struct : outfile, "%s", comment);
+		nice_printf (filep_for_stg(wrap_state, stg, outfile), "%s", comment);
+			
  Alias1:
 	    if (Alias) {
 		char *amp, *lp, *name, *rp;

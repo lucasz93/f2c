@@ -447,7 +447,7 @@ out_name(FILE *fp, Namep namep, int isdecl)
     if (namep->vprocclass == PTHISPROC && namep->vtype != TYSUBR)
 	nice_printf(fp, xretslot[namep->vtype]->user.ident);
     else if (!namep->ismacro && !isdecl && wrap_state && ONEOF(stg, M(STGINIT)|M(STGBSS)|M(STGEQUIV)|M(STGCOMMON)))
-	nice_printf (fp, "__state.%s.%s", wrap_module_name, namep->cvarname);
+	nice_printf (fp, "__state.%s->%s", wrap_module_name, namep->cvarname);
 	else
 	nice_printf (fp, "%s", namep->cvarname);
 } /* out_name */
@@ -727,7 +727,7 @@ output_literal(FILE *fp, long memno, Constp cp)
 	out_const (fp, cp);
     else {
 	if (wrap_state)
-		nice_printf (fp, "__state.%s.", wrap_module_name);
+		nice_printf (fp, "__state.%s->", wrap_module_name);
 	nice_printf (fp, "%s", lit_name (litp));
 	litp->lituse++;
 	}
@@ -1210,7 +1210,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
 			/* I/O block */
 			nice_printf(outfile, "&");
 			if (wrap_state && q->addrblock.vtype == TYCILIST && ONEOF(q->addrblock.vstg, M(STGBSS)|M(STGCOMMON)|M(STGINIT)))
-				nice_printf(outfile, "__state.%s.", wrap_module_name);
+				nice_printf(outfile, "__state.%s->", wrap_module_name);
 			nice_printf(outfile, "%s", q->addrblock.user.ident);
 			continue;
 			}

@@ -246,7 +246,7 @@ write_char_init(FILE *outfile, chainp *Values, Namep namep)
 	def_start(outfile, namep->cvarname, CNULL, "");
 	namep->ismacro = 1;
 	if (wrap_state)
-		sprintf(state_namespace, "__state.%s.", wrap_module_name);
+		sprintf(state_namespace, "__state.%s->", wrap_module_name);
 	if (type == TYCHAR)
 		margin_printf(outfile, "((char *)&%sequiv_%d)\n\n", state_namespace, eqvmemno);
 	else

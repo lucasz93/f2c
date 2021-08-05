@@ -389,7 +389,7 @@ write_wrapper_header(char **ffiles)
 		unlink(outbuf);
 		outbtail[strlen(outbtail) - 2] = 0;
 
-		nice_printf(header, "	%s_state_t %s;\n", outbtail, outbtail);
+		nice_printf(header, "	%s_state_t *%s;\n", outbtail, outbtail);
 	}
 	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
@@ -430,7 +430,7 @@ write_wrapper_source(char **ffiles)
 {
 	register int i;
 	FILEP src;
-	char buf[256];
+	char *period;
 
 	sprintf(outbtail, "%s.c", wrap_name);
 	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
@@ -439,7 +439,7 @@ write_wrapper_source(char **ffiles)
 	/* Write the main state header. */
 	{
 		nice_printf(src, "#include \"%s.h\"\n", wrap_name);
-		nice_printf(src, "%s_t __state = {\n", wrap_name);
+		nice_printf(src, "%s_t __state = { 0 };\n", wrap_name);
 		for (i = 0; ffiles[i]; i++)
 		{
 			FILEP module_init;
@@ -450,11 +450,15 @@ write_wrapper_source(char **ffiles)
 			if ((module_init = fopen(outbuf, textread)) == NULL)
 				continue;
 
-			nice_printf(src, "/* %s */\n{\n", outbtail);
+			period = outbtail + strlen(outbtail) - 4;
+			period[0] = 0;
+
+			nice_printf(src, "%s_init_t %s_init = {\n", outbtail, outbtail);
 			ffilecopy(module_init, src);
-			nice_printf(src, "},\n");
+			nice_printf(src, "};\n");
 			fclose(module_init);
 
+			period[0] = '.';
 			unlink(outbuf);
 		}
 		nice_printf(src, "#ifdef USER_T\n\
