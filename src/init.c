@@ -362,9 +362,6 @@ write_wrapper_header(char **ffiles)
 
 	nice_printf(header, "#include \"f2c.h\"\n");
 	nice_printf(header, "#include \"%s_user.h\"\n", wrap_name);
-	nice_printf(header, "#undef abs\n", wrap_name);
-	nice_printf(header, "#include <stdlib.h>\n", wrap_name);
-	nice_printf(header, "#include <string.h>\n", wrap_name);
 	nice_printf(header, "\n");
 
 	for (i = 0; ffiles[i]; i++)
@@ -401,12 +398,7 @@ write_wrapper_header(char **ffiles)
 
 	nice_printf(header, "extern %s_t __%s_state;\n\n", wrap_name, wrap_name);
 
-	nice_printf(header, "static void* __allocate_module(size_t state_sz, void* init, size_t init_sz) {\n\
-	void* state = malloc(state_sz);\n\
-	if (init && init_sz)\n\
-		memcpy(state, init, init_sz);\n\
-	return state;\n\
-}", wrap_name, wrap_name);
+	nice_printf(header, "extern void* __%s_allocate_module(int state_sz, void* init, int init_sz);\n", wrap_name);
 
 	fclose(header);
 }
@@ -479,7 +471,21 @@ write_wrapper_source(char **ffiles)
 {\n\
 #include \"%s_user.inl\"\n\
 }\n\
-#endif\n", wrap_name, wrap_name);
+#endif\n\n", wrap_name, wrap_name);
+	}
+
+	/* Write the allocate function. */
+	{
+		nice_printf(src, "#undef abs\n", wrap_name);
+		nice_printf(src, "#include <stdlib.h>\n", wrap_name);
+		nice_printf(src, "#include <string.h>\n", wrap_name);
+
+		nice_printf(src, "void* __%s_allocate_module(int state_sz, void* init, int init_sz) {\n\
+	void* state = malloc(state_sz);\n\
+	if (init && init_sz)\n\
+		memcpy(state, init, init_sz);\n\
+	return state;\n\
+}", wrap_name);
 	}
 
 	fclose(src);

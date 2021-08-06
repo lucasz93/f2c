@@ -469,15 +469,15 @@ wr_state_accessor(FILE *outfile)
 	if (has_initialized_state)
 	{
 		nice_printf(outfile, "	extern %s_init_t __%s_init;\n", wrap_module_name, wrap_module_name);
-		nice_printf(outfile, "	return __%s_state.%s\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		? __%s_state.%s\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		: (__%s_state.%s = __allocate_module(sizeof(%s_state_t), &__%s_init, sizeof(__%s_init)));\n", wrap_name, wrap_module_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	if (!__%s_state.%s)\n", wrap_name, wrap_module_name);
+		nice_printf(outfile, "		__%s_state.%s = __%s_allocate_module(sizeof(%s_state_t), &__%s_init, sizeof(__%s_init));\n", wrap_name, wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	return __%s_state.%s;\n\n", wrap_name, wrap_module_name);
 	}
 	else if (has_uninitialized_state)
 	{
-		nice_printf(outfile, "	return __%s_state.%s\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		? __%s_state.%s\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		: (__%s_state.%s = __allocate_module(sizeof(%s_state_t), 0, 0));\n", wrap_name, wrap_module_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	if (!__%s_state.%s)\n", wrap_name, wrap_module_name);
+		nice_printf(outfile, "		__%s_state.%s = __%s_allocate_module(sizeof(%s_state_t), 0, 0);\n", wrap_name, wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	return __%s_state.%s;\n\n", wrap_name, wrap_module_name);
 	}
 	else
 	{
