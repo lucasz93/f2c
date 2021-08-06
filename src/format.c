@@ -2114,6 +2114,11 @@ list_decls(FILE *outfile)
     if (refdefs)
 	ref_defs(outfile, refdefs);
 
+	if (wrap_state) {
+		nice_printf(outfile, "\n/* Module state */\n");
+		nice_printf(outfile, "%s_state_t* __state = get_%s_state();\n", wrap_module_name, wrap_module_name);
+	}
+
 } /* list_decls */
 
  void

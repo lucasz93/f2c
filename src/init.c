@@ -360,8 +360,12 @@ write_wrapper_header(char **ffiles)
 	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open wrapper header");
 
-	nice_printf(header, "#include \"f2c.h\"\n\n");
-	nice_printf(header, "#include \"%s_user.h\"\n\n", wrap_name);
+	nice_printf(header, "#include \"f2c.h\"\n");
+	nice_printf(header, "#include \"%s_user.h\"\n", wrap_name);
+	nice_printf(header, "#undef abs\n", wrap_name);
+	nice_printf(header, "#include <stdlib.h>\n", wrap_name);
+	nice_printf(header, "#include <string.h>\n", wrap_name);
+	nice_printf(header, "\n");
 
 	for (i = 0; ffiles[i]; i++)
 	{
@@ -390,12 +394,19 @@ write_wrapper_header(char **ffiles)
 		unlink(outbuf);
 		outbtail[strlen(outbtail) - 2] = 0;
 
-		nice_printf(header, "	%s_state_t *%s;\n", outbtail, outbtail);
+		nice_printf(header, "	%s_state_t* %s;\n", outbtail, outbtail);
 	}
 	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
 
-	nice_printf(header, "extern %s_t __state;\n\n", wrap_name);
+	nice_printf(header, "extern %s_t __%s_state;\n\n", wrap_name, wrap_name);
+
+	nice_printf(header, "static void* __allocate_module(size_t state_sz, void* init, size_t init_sz) {\n\
+	void* state = malloc(state_sz);\n\
+	if (init && init_sz)\n\
+		memcpy(state, init, init_sz);\n\
+	return state;\n\
+}", wrap_name, wrap_name);
 
 	fclose(header);
 }
@@ -439,8 +450,8 @@ write_wrapper_source(char **ffiles)
 
 	/* Write the main state header. */
 	{
-		nice_printf(src, "#include \"%s.h\"\n", wrap_name);
-		nice_printf(src, "%s_t __state = { 0 };\n", wrap_name);
+		nice_printf(src, "#include \"%s.h\"\n\n", wrap_name);
+		nice_printf(src, "%s_t __%s_state = { 0 };\n\n", wrap_name, wrap_name);
 		for (i = 0; ffiles[i]; i++)
 		{
 			FILEP module_init;
@@ -454,7 +465,8 @@ write_wrapper_source(char **ffiles)
 			period = outbtail + strlen(outbtail) - 4;
 			period[0] = 0;
 
-			nice_printf(src, "%s_init_t %s_init = {\n", outbtail, outbtail);
+			nice_printf(src, "/* -------------------------------------------------------------------------- */\n");
+			nice_printf(src, "%s_init_t __%s_init = {\n", outbtail, outbtail);
 			ffilecopy(module_init, src);
 			nice_printf(src, "};\n\n");
 			fclose(module_init);

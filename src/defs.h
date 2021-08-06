@@ -1045,6 +1045,7 @@ void	wr_array_init Argdcl((FILEP, int, chainp));
 void	wr_common_decls Argdcl((FILEP));
 void	wr_equiv_init Argdcl((FILEP, int, chainp*, int));
 void	wr_globals Argdcl((FILEP));
+void	wr_state_accessor Argdcl((FILEP));
 void	wr_nv_ident_help Argdcl((FILEP, Addrp));
 void	wr_struct Argdcl((FILEP, chainp));
 void    write_wrapper_header Argdcl((char**));

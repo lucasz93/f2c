@@ -635,6 +635,7 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 	if (blkdfile)
 		list_init_data(&blkdfile, blkdfname, c_output);
 	wr_globals (c_output);
+	wr_state_accessor (c_output);
 	if ((c_file = fopen (c_functions, textread)) == (FILE *) NULL)
 	    Fatal("main - couldn't reopen c_functions");
 	ffilecopy (c_file, c_output);
