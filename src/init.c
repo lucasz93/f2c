@@ -347,16 +347,16 @@ fileinit(Void)
 
  void
 #ifdef KR_headers
-write_wrapper_header(ffiles)
+write_state_header(ffiles)
 	char **ffiles;
 #else
-write_wrapper_header(char **ffiles)
+write_state_header(char **ffiles)
 #endif
 {
 	register int i;
 	FILEP header;
 
-	sprintf(outbtail, "%s.h", wrap_name);
+	sprintf(outbtail, "__%s_state.h", wrap_name);
 	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open wrapper header");
 
@@ -380,7 +380,8 @@ write_wrapper_header(char **ffiles)
 
 	nice_printf(header, "\n");
 	
-	nice_printf(header, "typedef struct {\n");
+	nice_printf(header, "typedef struct %s_s {\n", wrap_name);
+	nice_printf(header, "	struct %s_s* prev;\n", wrap_name);
 	for (i = 0; ffiles[i]; i++)
 	{
 		strcpy(outbtail, ffiles[i]);
@@ -388,7 +389,6 @@ write_wrapper_header(char **ffiles)
 		if (access(outbuf, F_OK))
 			continue;
 
-		unlink(outbuf);
 		outbtail[strlen(outbtail) - 2] = 0;
 
 		nice_printf(header, "	%s_state_t* %s;\n", outbtail, outbtail);
@@ -396,9 +396,11 @@ write_wrapper_header(char **ffiles)
 	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
 
-	nice_printf(header, "extern %s_t __%s_state;\n\n", wrap_name, wrap_name);
+	nice_printf(header, "extern %s_t* __%s_get_state(void);\n\n", wrap_name, wrap_name);
+	nice_printf(header, "extern void __%s_set_state(%s_t* state);\n\n", wrap_name, wrap_name);
 
 	nice_printf(header, "extern void* __%s_allocate_module(int state_sz, void* init, int init_sz);\n", wrap_name);
+	nice_printf(header, "extern void  __%s_not_initialized();\n", wrap_name);
 
 	fclose(header);
 }
@@ -426,24 +428,31 @@ typedef struct {\n\
 
  void
 #ifdef KR_headers
-write_wrapper_source(ffiles)
+write_state_source(ffiles)
 	char **ffiles;
 #else
-write_wrapper_source(char **ffiles)
+write_state_source(char **ffiles)
 #endif
 {
 	register int i;
 	FILEP src;
-	char *period;
 
-	sprintf(outbtail, "%s.c", wrap_name);
+	sprintf(outbtail, "__%s_state.c", wrap_name);
 	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open wrapper source");
 
 	/* Write the main state header. */
 	{
-		nice_printf(src, "#include \"%s.h\"\n\n", wrap_name);
-		nice_printf(src, "%s_t __%s_state = { 0 };\n\n", wrap_name, wrap_name);
+		nice_printf(src, "#include \"__%s_state.h\"\n\n", wrap_name);
+		
+		nice_printf(src, "static %s_t** get_tls_ptr() {\n", wrap_name, wrap_name);
+		nice_printf(src, "	static _Thread_local %s_t* state = 0;\n", wrap_name);
+		nice_printf(src, "	return &state;\n");
+		nice_printf(src, "}\n\n");
+
+		nice_printf(src, "%s_t* __%s_get_state(void) { return *get_tls_ptr(); }\n", wrap_name, wrap_name);
+		nice_printf(src, "void __%s_set_state(%s_t* state) { *get_tls_ptr() = state; }\n\n", wrap_name, wrap_name);
+
 		for (i = 0; ffiles[i]; i++)
 		{
 			FILEP module_init;
@@ -454,17 +463,13 @@ write_wrapper_source(char **ffiles)
 			if ((module_init = fopen(outbuf, textread)) == NULL)
 				continue;
 
-			period = outbtail + strlen(outbtail) - 4;
-			period[0] = 0;
+			outbtail[strlen(outbtail) - 4] = 0;
 
 			nice_printf(src, "/* -------------------------------------------------------------------------- */\n");
 			nice_printf(src, "%s_init_t __%s_init = {\n", outbtail, outbtail);
 			ffilecopy(module_init, src);
 			nice_printf(src, "};\n\n");
 			fclose(module_init);
-
-			period[0] = '.';
-			unlink(outbuf);
 		}
 		nice_printf(src, "#ifdef USER_T\n\
 %s_user_state_t user_init = {\n\
@@ -479,16 +484,175 @@ write_wrapper_source(char **ffiles)
 		nice_printf(src, "#undef abs\n", wrap_name);
 		nice_printf(src, "#include <stdlib.h>\n", wrap_name);
 		nice_printf(src, "#include <string.h>\n", wrap_name);
+		nice_printf(src, "#include <string.h>\n", wrap_name);
 
 		nice_printf(src, "void* __%s_allocate_module(int state_sz, void* init, int init_sz) {\n\
 	void* state = malloc(state_sz);\n\
 	if (init && init_sz)\n\
 		memcpy(state, init, init_sz);\n\
 	return state;\n\
-}", wrap_name);
+}\n\n", wrap_name);
+
+		nice_printf(src, "int sigerr_(char *msg, ftnlen msg_len);\n");
+		nice_printf(src, "void __%s_not_initialized() {\n\
+	sigerr_(\"SPICE(NOTINITIALIZED)\", (ftnlen)21);\n\
+}\n\n", wrap_name);
 	}
 
 	fclose(src);
+}
+
+ void
+write_interface_header(Void)
+{
+	FILEP header;
+
+	sprintf(outbtail, "%s_state.h", wrap_name);
+	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
+	    Fatal("main - couldn't open interface header");
+
+	nice_printf(header, "extern void  %s_init(); /* Readies the library for use in the current thread. */\n", wrap_name);
+	nice_printf(header, "extern void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
+	nice_printf(header, "extern void  %s_push_copy(void* state); /* Makes a copy of the input state, and sets that copy as active. */\n", wrap_name);
+	nice_printf(header, "extern void  %s_pop(); /* Reverts to the thread's previous state. */\n", wrap_name);
+	nice_printf(header, "extern void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
+	nice_printf(header, "extern void  %s_shutdown(); /* Cleanup any thread specific allocations. */\n", wrap_name);
+	nice_printf(header, "\n");
+
+	fclose(header);
+}
+
+ void
+#ifdef KR_headers
+write_interface_source(ffiles)
+	char **ffiles;
+#else
+write_interface_source(char **ffiles)
+#endif
+{
+	register int i;
+	FILEP src;
+	char module[256];
+
+	sprintf(outbtail, "%s_state.c", wrap_name);
+	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
+	    Fatal("main - couldn't open interface source");
+
+	nice_printf(src, "#include \"f2c.h\"\n");
+	nice_printf(src, "#include \"__%s_state.h\"\n", wrap_name);
+	nice_printf(src, "#undef abs\n", wrap_name);
+	nice_printf(src, "#include <stdlib.h>\n", wrap_name);
+
+
+	/* copy */
+	{
+		nice_printf(src, "static void* copy_state(%s_t *state) {\n", wrap_name);
+		nice_printf(src, "	%s_t* copy = calloc(1, sizeof(*copy));\n", wrap_name);
+		for (i = 0; ffiles[i]; i++)
+		{
+			FILEP module_init;
+
+			strcpy(outbtail, ffiles[i]);
+			outbtail[strlen(outbtail) - 1] = 'h';
+			if (access(outbuf, F_OK))
+				continue;
+
+			strcpy(module, ffiles[i]);
+			module[strlen(module) - 2] = 0;
+
+			nice_printf(src, "	if (state->%s) copy->%s = __%s_allocate_module(sizeof(*copy->%s), state->%s, sizeof(*copy->%s));\n", module, module, wrap_name, module, module, module);
+		}
+		nice_printf(src, "}\n\n");
+	}
+
+	/* init */
+	{
+		nice_printf(src, "void %s_init() {\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(calloc(1, sizeof(%s_t)));\n", wrap_name, wrap_name);
+		nice_printf(src, "}\n\n", wrap_name);
+	}
+
+	/* save */
+	{
+		nice_printf(src, "void* %s_save(void) {\n", wrap_name);
+		nice_printf(src, "	return copy_state(__%s_get_state());\n", wrap_name);
+		nice_printf(src, "}\n\n");
+	}
+
+	/* push_copy */
+	{
+		nice_printf(src, "void %s_push_copy(void* state) {\n", wrap_name);
+		nice_printf(src, "	%s_t* next = copy_state(state);\n", wrap_name);
+		nice_printf(src, "	next->prev = __%s_get_state();\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(next);\n", wrap_name);
+		nice_printf(src, "}\n\n", wrap_name);
+	}
+
+	/* free */
+	{
+		nice_printf(src, "void %s_free(void* s) {\n", wrap_name);
+		nice_printf(src, "	%s_t* state = s;\n", wrap_name);
+		for (i = 0; ffiles[i]; i++)
+		{
+			FILEP module_init;
+
+			strcpy(outbtail, ffiles[i]);
+			outbtail[strlen(outbtail) - 1] = 'h';
+			if (access(outbuf, F_OK))
+				continue;
+
+			strcpy(module, ffiles[i]);
+			module[strlen(module) - 2] = 0;
+
+			nice_printf(src, "	if (state->%s) free(state->%s);\n", module, module);
+		}
+
+		nice_printf(src, "	free(state);\n");
+		nice_printf(src, "}\n\n");
+	}
+
+	/* pop */
+	{
+		nice_printf(src, "void %s_pop() {\n", wrap_name);
+		nice_printf(src, "	%s_t* cur = __%s_get_state();\n", wrap_name, wrap_name);
+		nice_printf(src, "	%s_t* prev = cur->prev;\n", wrap_name);
+		nice_printf(src, "	%s_free(cur);\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(prev);\n", wrap_name);
+		nice_printf(src, "}\n\n", wrap_name);
+	}
+
+	/* shutdown */
+	{
+		nice_printf(src, "void %s_shutdown() {\n", wrap_name);
+		nice_printf(src, "	while (__%s_get_state())\n", wrap_name, wrap_name);
+		nice_printf(src, "		%s_pop();\n", wrap_name);
+		nice_printf(src, "}\n");
+	}
+
+	fclose(src);
+}
+
+ void
+#ifdef KR_headers
+unlink_intermediate_files(ffiles)
+	char **ffiles;
+#else
+unlink_intermediate_files(char **ffiles)
+#endif
+{
+	register int i;
+
+	for (i = 0; ffiles[i]; i++)
+	{
+		strcpy(outbtail, ffiles[i]);
+
+		outbtail[strlen(outbtail) - 1] = 'h';
+		unlink(outbuf);
+
+		outbtail[strlen(outbtail) - 1] = 0;
+		strcat(outbtail, "inl");
+		unlink(outbuf);
+	}
 }
 
  void

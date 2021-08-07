@@ -463,21 +463,28 @@ wr_state_accessor(FILE *outfile)
 	{
 		nice_printf(outfile, "typedef int %s_state_t;\n", wrap_module_name);
 	}
+	
+	if (has_initialized_state)
+	{
+		nice_printf(outfile, "extern %s_init_t __%s_init;\n", wrap_module_name, wrap_module_name);
+	}
 
 	nice_printf(outfile, "static %s_state_t* get_%s_state() {\n", wrap_module_name, wrap_module_name);
+	nice_printf(outfile, "	%s_t* state =  __%s_get_state();\n", wrap_name, wrap_name);
+	nice_printf(outfile, "	if (!state)\n");
+	nice_printf(outfile, "		__%s_not_initialized();\n", wrap_name);
 
 	if (has_initialized_state)
 	{
-		nice_printf(outfile, "	extern %s_init_t __%s_init;\n", wrap_module_name, wrap_module_name);
-		nice_printf(outfile, "	if (!__%s_state.%s)\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		__%s_state.%s = __%s_allocate_module(sizeof(%s_state_t), &__%s_init, sizeof(__%s_init));\n", wrap_name, wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
-		nice_printf(outfile, "	return __%s_state.%s;\n\n", wrap_name, wrap_module_name);
+		nice_printf(outfile, "	if (!state->%s)\n", wrap_module_name);
+		nice_printf(outfile, "		state->%s = __%s_allocate_module(sizeof(%s_state_t), &__%s_init, sizeof(__%s_init));\n", wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	return state->%s;\n\n", wrap_module_name);
 	}
 	else if (has_uninitialized_state)
 	{
-		nice_printf(outfile, "	if (!__%s_state.%s)\n", wrap_name, wrap_module_name);
-		nice_printf(outfile, "		__%s_state.%s = __%s_allocate_module(sizeof(%s_state_t), 0, 0);\n", wrap_name, wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
-		nice_printf(outfile, "	return __%s_state.%s;\n\n", wrap_name, wrap_module_name);
+		nice_printf(outfile, "	if (!state->%s)\n", wrap_module_name);
+		nice_printf(outfile, "		state->%s = __%s_allocate_module(sizeof(%s_state_t), 0, 0);\n", wrap_module_name, wrap_name, wrap_module_name, wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "	return state->%s;\n\n", wrap_module_name);
 	}
 	else
 	{

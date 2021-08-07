@@ -621,7 +621,7 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 			"#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
 	nice_printf (c_output, "%s#include \"f2c.h\"\n", def_i2);
 	if (wrap_state)
-		nice_printf (c_output, "#include \"%s.h\"\n", wrap_name);
+		nice_printf (c_output, "#include \"__%s_state.h\"\n", wrap_name);
 	nice_printf (c_output, "\n\n");
 	if (gflag)
 		nice_printf (c_output, "#line 1 \"%s\"\n", file_name);
@@ -717,9 +717,14 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 	{
 		while(wait(NULL) > 0);
 
-		write_wrapper_header(ftn_files);
+		write_state_header(ftn_files);
 		write_user_header();
-		write_wrapper_source(ftn_files);
+		write_state_source(ftn_files);
+
+		write_interface_header();
+		write_interface_source(ftn_files);
+
+		unlink_intermediate_files(ftn_files);
 	}
 
  C_skipped:
