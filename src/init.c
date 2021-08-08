@@ -515,6 +515,7 @@ write_interface_header(Void)
 	nice_printf(header, "#endif\n", wrap_name);
 
 	nice_printf(header, "void  %s_init(); /* Readies the library for use in the current thread. */\n", wrap_name);
+	nice_printf(header, "void* %s_copy(void* state); /* Deep copy of the given state. */\n", wrap_name);
 	nice_printf(header, "void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
 	nice_printf(header, "void  %s_push(void* state); /* Sets the given state as active. Be sure not to free it while it's active! */\n", wrap_name);
 	nice_printf(header, "void  %s_push_copy(void* state); /* Makes a copy of the input state, and sets that copy as active. */\n", wrap_name);
@@ -547,15 +548,23 @@ write_interface_source(char **ffiles)
 	if ((src = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open interface source");
 
+	nice_printf(src, "#include \"%s_state.h\"\n", wrap_name);
 	nice_printf(src, "#include \"f2c.h\"\n");
 	nice_printf(src, "#include \"__%s_state.h\"\n", wrap_name);
 	nice_printf(src, "#undef abs\n", wrap_name);
 	nice_printf(src, "#include <stdlib.h>\n", wrap_name);
 
+	/* init */
+	{
+		nice_printf(src, "void %s_init() {\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(calloc(1, sizeof(%s_t)));\n", wrap_name, wrap_name);
+		nice_printf(src, "}\n\n", wrap_name);
+	}
 
 	/* copy */
 	{
-		nice_printf(src, "static void* copy_state(%s_t *state) {\n", wrap_name);
+		nice_printf(src, "void* %s_copy(void* s) {\n", wrap_name);
+		nice_printf(src, "	%s_t* state = s;\n", wrap_name);
 		nice_printf(src, "	%s_t* copy = calloc(1, sizeof(*copy));\n", wrap_name);
 		for (i = 0; ffiles[i]; i++)
 		{
@@ -571,20 +580,14 @@ write_interface_source(char **ffiles)
 
 			nice_printf(src, "	if (state->%s) copy->%s = __%s_allocate_module(sizeof(*copy->%s), state->%s, sizeof(*copy->%s));\n", module, module, wrap_name, module, module, module);
 		}
+		nice_printf(src, "	return copy;\n");
 		nice_printf(src, "}\n\n");
-	}
-
-	/* init */
-	{
-		nice_printf(src, "void %s_init() {\n", wrap_name);
-		nice_printf(src, "	__%s_set_state(calloc(1, sizeof(%s_t)));\n", wrap_name, wrap_name);
-		nice_printf(src, "}\n\n", wrap_name);
 	}
 
 	/* save */
 	{
 		nice_printf(src, "void* %s_save(void) {\n", wrap_name);
-		nice_printf(src, "	return copy_state(__%s_get_state());\n", wrap_name);
+		nice_printf(src, "	return %s_copy(__%s_get_state());\n", wrap_name, wrap_name);
 		nice_printf(src, "}\n\n");
 	}
 
@@ -600,7 +603,7 @@ write_interface_source(char **ffiles)
 	/* push_copy */
 	{
 		nice_printf(src, "void %s_push_copy(void* state) {\n", wrap_name);
-		nice_printf(src, "	%s_push(copy_state(state));\n", wrap_name);
+		nice_printf(src, "	%s_push(%s_copy(state));\n", wrap_name, wrap_name);
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 
