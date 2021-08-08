@@ -400,7 +400,7 @@ write_state_header(char **ffiles)
 	nice_printf(header, "extern void __%s_set_state(%s_t* state);\n\n", wrap_name, wrap_name);
 
 	nice_printf(header, "extern void* __%s_allocate_module(int state_sz, void* init, int init_sz);\n", wrap_name);
-	nice_printf(header, "extern void  __%s_not_initialized();\n", wrap_name);
+	//nice_printf(header, "extern void  __%s_not_initialized();\n", wrap_name);
 
 	fclose(header);
 }
@@ -493,10 +493,9 @@ write_state_source(char **ffiles)
 	return state;\n\
 }\n\n", wrap_name);
 
-		nice_printf(src, "int sigerr_(char *msg, ftnlen msg_len);\n");
-		nice_printf(src, "void __%s_not_initialized() {\n\
+/*		nice_printf(src, "void __%s_not_initialized() {\n\
 	sigerr_(\"SPICE(NOTINITIALIZED)\", (ftnlen)21);\n\
-}\n\n", wrap_name);
+}\n\n", wrap_name);*/
 	}
 
 	fclose(src);
@@ -511,12 +510,22 @@ write_interface_header(Void)
 	if ((header = fopen (outbuf, textwrite)) == (FILE *) NULL)
 	    Fatal("main - couldn't open interface header");
 
-	nice_printf(header, "extern void  %s_init(); /* Readies the library for use in the current thread. */\n", wrap_name);
-	nice_printf(header, "extern void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
-	nice_printf(header, "extern void  %s_push_copy(void* state); /* Makes a copy of the input state, and sets that copy as active. */\n", wrap_name);
-	nice_printf(header, "extern void  %s_pop(); /* Reverts to the thread's previous state. */\n", wrap_name);
-	nice_printf(header, "extern void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
-	nice_printf(header, "extern void  %s_shutdown(); /* Cleanup any thread specific allocations. */\n", wrap_name);
+	nice_printf(header, "#ifdef __cplusplus\n", wrap_name);
+	nice_printf(header, "extern \"C\" {\n", wrap_name);
+	nice_printf(header, "#endif\n", wrap_name);
+
+	nice_printf(header, "void  %s_init(); /* Readies the library for use in the current thread. */\n", wrap_name);
+	nice_printf(header, "void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
+	nice_printf(header, "void  %s_push(void* state); /* Sets the given state as active. Be sure not to free it while it's active! */\n", wrap_name);
+	nice_printf(header, "void  %s_push_copy(void* state); /* Makes a copy of the input state, and sets that copy as active. */\n", wrap_name);
+	nice_printf(header, "void* %s_pop(); /* Reverts to the thread's previous state. Returns the popped state. */\n", wrap_name);
+	nice_printf(header, "void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
+	nice_printf(header, "void  %s_shutdown(); /* Cleanup any thread specific allocations. */\n", wrap_name);
+
+	nice_printf(header, "#ifdef __cplusplus\n", wrap_name);
+	nice_printf(header, "}\n", wrap_name);
+	nice_printf(header, "#endif\n", wrap_name);
+
 	nice_printf(header, "\n");
 
 	fclose(header);
@@ -579,12 +588,19 @@ write_interface_source(char **ffiles)
 		nice_printf(src, "}\n\n");
 	}
 
+	/* push */
+	{
+		nice_printf(src, "void %s_push(void* state) {\n", wrap_name);
+		nice_printf(src, "	%s_t* next = state;\n", wrap_name);
+		nice_printf(src, "	next->prev = __%s_get_state();\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(next);\n", wrap_name);
+		nice_printf(src, "}\n\n", wrap_name);
+	}
+
 	/* push_copy */
 	{
 		nice_printf(src, "void %s_push_copy(void* state) {\n", wrap_name);
-		nice_printf(src, "	%s_t* next = copy_state(state);\n", wrap_name);
-		nice_printf(src, "	next->prev = __%s_get_state();\n", wrap_name);
-		nice_printf(src, "	__%s_set_state(next);\n", wrap_name);
+		nice_printf(src, "	%s_push(copy_state(state));\n", wrap_name);
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 
@@ -613,11 +629,10 @@ write_interface_source(char **ffiles)
 
 	/* pop */
 	{
-		nice_printf(src, "void %s_pop() {\n", wrap_name);
+		nice_printf(src, "void* %s_pop() {\n", wrap_name);
 		nice_printf(src, "	%s_t* cur = __%s_get_state();\n", wrap_name, wrap_name);
-		nice_printf(src, "	%s_t* prev = cur->prev;\n", wrap_name);
-		nice_printf(src, "	%s_free(cur);\n", wrap_name);
-		nice_printf(src, "	__%s_set_state(prev);\n", wrap_name);
+		nice_printf(src, "	__%s_set_state(cur->prev);\n", wrap_name);
+		nice_printf(src, "	return cur;\n");
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 

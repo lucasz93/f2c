@@ -471,8 +471,8 @@ wr_state_accessor(FILE *outfile)
 
 	nice_printf(outfile, "static %s_state_t* get_%s_state() {\n", wrap_module_name, wrap_module_name);
 	nice_printf(outfile, "	%s_t* state =  __%s_get_state();\n", wrap_name, wrap_name);
-	nice_printf(outfile, "	if (!state)\n");
-	nice_printf(outfile, "		__%s_not_initialized();\n", wrap_name);
+	/*nice_printf(outfile, "	if (!state)\n");
+	nice_printf(outfile, "		__%s_not_initialized();\n", wrap_name);*/
 
 	if (has_initialized_state)
 	{
