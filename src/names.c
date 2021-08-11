@@ -814,7 +814,7 @@ equiv_name(int memno, char *store, int isdecl)
     if (store)
 	pointer = store;
 
-	if (isdecl)
+	if (!wrap_state || isdecl)
     	sprintf (pointer, "%s_%d", EQUIV_INIT_NAME, memno);
 	else
 		sprintf (pointer, "__state->%s_%d", EQUIV_INIT_NAME, memno);
