@@ -393,7 +393,7 @@ write_state_header(char **ffiles)
 
 		nice_printf(header, "	%s_state_t* %s;\n", outbtail, outbtail);
 	}
-	nice_printf(header, "#ifdef USER_T\n	user_t user;\n#endif\n", wrap_name);
+	nice_printf(header, "#ifdef USER_T\n	%s_user_state_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
 
 	nice_printf(header, "extern %s_t* __%s_get_state(void);\n\n", wrap_name, wrap_name);
@@ -421,7 +421,15 @@ write_user_header(Void)
 typedef struct {\n\
 \n\
 } %s_user_state_t;\n\
-#endif\n", wrap_name);
+\n\
+static void __%s_init_user(%s_user_state_t *user) {\n\
+\n\
+}\n\
+\n\
+static void __%s_free_user(%s_user_state_t *user) {\n\
+\n\
+}\n\
+#endif\n", wrap_name, wrap_name, wrap_name, wrap_name, wrap_name);
 
 	fclose(header);
 }
@@ -471,12 +479,6 @@ write_state_source(char **ffiles)
 			nice_printf(src, "};\n\n");
 			fclose(module_init);
 		}
-		nice_printf(src, "#ifdef USER_T\n\
-%s_user_state_t user_init = {\n\
-{\n\
-#include \"%s_user.inl\"\n\
-}\n\
-#endif\n\n", wrap_name, wrap_name);
 	}
 
 	/* Write the allocate function. */
@@ -557,7 +559,11 @@ write_interface_source(char **ffiles)
 	/* init */
 	{
 		nice_printf(src, "void %s_init() {\n", wrap_name);
-		nice_printf(src, "	__%s_set_state(calloc(1, sizeof(%s_t)));\n", wrap_name, wrap_name);
+		nice_printf(src, "	%s_t* state = calloc(1, sizeof(%s_t));\n", wrap_name, wrap_name);
+		nice_printf(src, "#ifdef USER_T\n");
+		nice_printf(src, "	__%s_init_user(&state->user);\n", wrap_name);
+		nice_printf(src, "#endif\n");
+		nice_printf(src, "	__%s_set_state(state);\n", wrap_name);
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 
