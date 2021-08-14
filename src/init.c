@@ -520,7 +520,6 @@ write_interface_header(Void)
 	nice_printf(header, "void* %s_copy(void* state); /* Deep copy of the given state. */\n", wrap_name);
 	nice_printf(header, "void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
 	nice_printf(header, "void  %s_push(void* state); /* Sets the given state as active. Be sure not to free it while it's active! */\n", wrap_name);
-	nice_printf(header, "void  %s_push_copy(void* state); /* Makes a copy of the input state, and sets that copy as active. */\n", wrap_name);
 	nice_printf(header, "void* %s_pop(); /* Reverts to the thread's previous state. Returns the popped state. */\n", wrap_name);
 	nice_printf(header, "void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
 	nice_printf(header, "void  %s_shutdown(); /* Cleanup any thread specific allocations. */\n", wrap_name);
@@ -606,13 +605,6 @@ write_interface_source(char **ffiles)
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 
-	/* push_copy */
-	{
-		nice_printf(src, "void %s_push_copy(void* state) {\n", wrap_name);
-		nice_printf(src, "	%s_push(%s_copy(state));\n", wrap_name, wrap_name);
-		nice_printf(src, "}\n\n", wrap_name);
-	}
-
 	/* free */
 	{
 		nice_printf(src, "void %s_free(void* s) {\n", wrap_name);
@@ -648,8 +640,7 @@ write_interface_source(char **ffiles)
 	/* shutdown */
 	{
 		nice_printf(src, "void %s_shutdown() {\n", wrap_name);
-		nice_printf(src, "	while (__%s_get_state())\n", wrap_name, wrap_name);
-		nice_printf(src, "		%s_pop();\n", wrap_name);
+		nice_printf(src, "	%s_free(__%s_get_state());\n", wrap_name, wrap_name);
 		nice_printf(src, "}\n");
 	}
 
