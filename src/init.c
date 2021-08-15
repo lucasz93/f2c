@@ -585,6 +585,9 @@ write_interface_source(char **ffiles)
 
 			nice_printf(src, "	if (state->%s) copy->%s = __%s_allocate_module(sizeof(*copy->%s), state->%s, sizeof(*copy->%s));\n", module, module, wrap_name, module, module, module);
 		}
+		nice_printf(src, "#ifdef USER_T\n");
+		nice_printf(src, "	memcpy(&copy->user, &state->user, sizeof(copy->user));\n");
+		nice_printf(src, "#endif\n");
 		nice_printf(src, "	return copy;\n");
 		nice_printf(src, "}\n\n");
 	}
