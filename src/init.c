@@ -361,6 +361,7 @@ write_state_header(char **ffiles)
 	    Fatal("main - couldn't open wrapper header");
 
 	nice_printf(header, "#include \"f2c.h\"\n");
+	nice_printf(header, "#include \"fio.h\"\n");
 	nice_printf(header, "#include \"%s_user.h\"\n", wrap_name);
 	nice_printf(header, "\n");
 
@@ -379,9 +380,10 @@ write_state_header(char **ffiles)
 	}
 
 	nice_printf(header, "\n");
-	
-	nice_printf(header, "typedef struct %s_s {\n", wrap_name);
-	nice_printf(header, "	struct %s_s* prev;\n", wrap_name);
+
+	nice_printf(header, "/* -------------------------------------------------------------------------- */\n");
+	nice_printf(header, "typedef struct {\n");
+	nice_printf(header, "    f2c_state_t f2c;\n");
 	for (i = 0; ffiles[i]; i++)
 	{
 		strcpy(outbtail, ffiles[i]);
@@ -395,9 +397,6 @@ write_state_header(char **ffiles)
 	}
 	nice_printf(header, "#ifdef USER_T\n	%s_user_state_t user;\n#endif\n", wrap_name);
 	nice_printf(header, "} %s_t;\n\n", wrap_name);
-
-	nice_printf(header, "extern %s_t* __%s_get_state(void);\n\n", wrap_name, wrap_name);
-	nice_printf(header, "extern void __%s_set_state(%s_t* state);\n\n", wrap_name, wrap_name);
 
 	nice_printf(header, "extern void* __%s_allocate_module(int state_sz, void* init, int init_sz);\n", wrap_name);
 	//nice_printf(header, "extern void  __%s_not_initialized();\n", wrap_name);
@@ -452,14 +451,6 @@ write_state_source(char **ffiles)
 	/* Write the main state header. */
 	{
 		nice_printf(src, "#include \"__%s_state.h\"\n\n", wrap_name);
-		
-		nice_printf(src, "static %s_t** get_tls_ptr() {\n", wrap_name, wrap_name);
-		nice_printf(src, "	static _Thread_local %s_t* state = 0;\n", wrap_name);
-		nice_printf(src, "	return &state;\n");
-		nice_printf(src, "}\n\n");
-
-		nice_printf(src, "%s_t* __%s_get_state(void) { return *get_tls_ptr(); }\n", wrap_name, wrap_name);
-		nice_printf(src, "void __%s_set_state(%s_t* state) { *get_tls_ptr() = state; }\n\n", wrap_name, wrap_name);
 
 		for (i = 0; ffiles[i]; i++)
 		{
@@ -516,13 +507,9 @@ write_interface_header(Void)
 	nice_printf(header, "extern \"C\" {\n", wrap_name);
 	nice_printf(header, "#endif\n", wrap_name);
 
-	nice_printf(header, "void  %s_init(); /* Readies the library for use in the current thread. */\n", wrap_name);
+	nice_printf(header, "void* %s_alloc(); /* Readies the library for use in the current thread. */\n", wrap_name);
 	nice_printf(header, "void* %s_copy(void* state); /* Deep copy of the given state. */\n", wrap_name);
-	nice_printf(header, "void* %s_save(void); /* Makes a copy of the current thread's state, and provides a handle to the caller. */\n", wrap_name);
-	nice_printf(header, "void  %s_push(void* state); /* Sets the given state as active. Be sure not to free it while it's active! */\n", wrap_name);
-	nice_printf(header, "void* %s_pop(); /* Reverts to the thread's previous state. Returns the popped state. */\n", wrap_name);
 	nice_printf(header, "void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
-	nice_printf(header, "void  %s_shutdown(); /* Cleanup any thread specific allocations. */\n", wrap_name);
 
 	nice_printf(header, "#ifdef __cplusplus\n", wrap_name);
 	nice_printf(header, "}\n", wrap_name);
@@ -557,12 +544,17 @@ write_interface_source(char **ffiles)
 
 	/* init */
 	{
-		nice_printf(src, "void %s_init() {\n", wrap_name);
+		nice_printf(src, "void* %s_alloc() {\n", wrap_name);
 		nice_printf(src, "	%s_t* state = calloc(1, sizeof(%s_t));\n", wrap_name, wrap_name);
+		nice_printf(src, "	f2c_state_t* f2c = &state->f2c;\n");
+		nice_printf(src, "	f2c->read_non_native = 0;\n");
+		nice_printf(src, "	f2c->f__init = 0;\n");
+		nice_printf(src, "	f2c->f__buf = f2c->f__buf0;\n");
+		nice_printf(src, "	f2c->f__buflen = sizeof(f2c->f__buf0);\n");
 		nice_printf(src, "#ifdef USER_T\n");
 		nice_printf(src, "	__%s_init_user(&state->user);\n", wrap_name);
 		nice_printf(src, "#endif\n");
-		nice_printf(src, "	__%s_set_state(state);\n", wrap_name);
+		nice_printf(src, "	return state;\n");
 		nice_printf(src, "}\n\n", wrap_name);
 	}
 
@@ -592,22 +584,6 @@ write_interface_source(char **ffiles)
 		nice_printf(src, "}\n\n");
 	}
 
-	/* save */
-	{
-		nice_printf(src, "void* %s_save(void) {\n", wrap_name);
-		nice_printf(src, "	return %s_copy(__%s_get_state());\n", wrap_name, wrap_name);
-		nice_printf(src, "}\n\n");
-	}
-
-	/* push */
-	{
-		nice_printf(src, "void %s_push(void* state) {\n", wrap_name);
-		nice_printf(src, "	%s_t* next = state;\n", wrap_name);
-		nice_printf(src, "	next->prev = __%s_get_state();\n", wrap_name);
-		nice_printf(src, "	__%s_set_state(next);\n", wrap_name);
-		nice_printf(src, "}\n\n", wrap_name);
-	}
-
 	/* free */
 	{
 		nice_printf(src, "void %s_free(void* s) {\n", wrap_name);
@@ -629,22 +605,6 @@ write_interface_source(char **ffiles)
 
 		nice_printf(src, "	free(state);\n");
 		nice_printf(src, "}\n\n");
-	}
-
-	/* pop */
-	{
-		nice_printf(src, "void* %s_pop() {\n", wrap_name);
-		nice_printf(src, "	%s_t* cur = __%s_get_state();\n", wrap_name, wrap_name);
-		nice_printf(src, "	__%s_set_state(cur->prev);\n", wrap_name);
-		nice_printf(src, "	return cur;\n");
-		nice_printf(src, "}\n\n", wrap_name);
-	}
-
-	/* shutdown */
-	{
-		nice_printf(src, "void %s_shutdown() {\n", wrap_name);
-		nice_printf(src, "	%s_free(__%s_get_state());\n", wrap_name, wrap_name);
-		nice_printf(src, "}\n");
 	}
 
 	fclose(src);

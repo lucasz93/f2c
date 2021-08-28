@@ -1125,6 +1125,7 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
     Argtypes *at;
     Atype *A, *Ac;
     Namep np;
+	int name_tag = name->tag;
     extern int forcereal;
 
 /* Don't use addresses if we're calling a C function */
@@ -1194,6 +1195,10 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
     done_once = ret_val ? TRUE : FALSE;
 
 /* Now run through the named arguments */
+	if (wrap_state)
+		nice_printf(outfile, "%s%s", 
+			name_tag == TADDR ? "&__global_state->f2c" : "__global_state",
+			arglist ? ", " : "");
 
     narg = -1;
     for (cp = arglist; cp; cp = cp -> nextp, done_once = TRUE) {

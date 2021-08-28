@@ -77,7 +77,7 @@ static int p1getd Argdcl((FILEP, long int*));
 static int p1getf Argdcl((FILEP, char**));
 static int p1getn Argdcl((FILEP, int, char**));
 static int p1gets Argdcl((FILEP, char*, int));
-static void proto Argdcl((FILEP, Argtypes*, char*));
+static void proto Argdcl((FILEP, Argtypes*, char*, char*));
 
 extern chainp assigned_fmts;
 char filename[P1_FILENAME_MAX];
@@ -1192,6 +1192,10 @@ list_arg_types(FILE *outfile, struct Entrypoint *entryp, chainp lengths, int add
 	done_one = 0;
 	sep1 = ", ";
 	nice_printf(outfile, "(" /*)*/);
+	if (wrap_state) {
+		nice_printf(outfile, "%s_t* __global_state", wrap_name);
+		sep = sep1;
+	}
 	}
     else {
 	done_one = 1;
@@ -1199,7 +1203,7 @@ list_arg_types(FILE *outfile, struct Entrypoint *entryp, chainp lengths, int add
 	}
     args = entryp->arglist;
     if (add_n_) {
-	nice_printf(outfile, "int n__");
+	nice_printf(outfile, "%sint n__", sep);
 	did_one = done_one;
 	sep = sep1;
 	args = allargs;
@@ -1811,7 +1815,7 @@ list_decls(FILE *outfile)
 		nice_printf(outfile, "%s\n%s ", did_one ? ";" : "", ctype);
 
 	    extern_out(outfile, es = &extsymtab[e -> memno]);
-	    proto(outfile, es->arginfo, es->fextname);
+	    proto(outfile, es->arginfo, es->fextname, "f2c_state");
 	    last_type = type;
 	    did_one = 1;
 	} /* for cp = used_builtins */
@@ -1983,7 +1987,7 @@ list_decls(FILE *outfile)
 			if (!(at = var->arginfo)
 			 && var->vprocclass == PEXTERNAL)
 				at = extsymtab[var->vardesc.varno].arginfo;
-			proto(outfile, at, var->fvarname);
+			proto(outfile, at, var->fvarname, wrap_name);
 			}
 		else if (type == TYCHAR && ISICON ((var -> vleng)))
 			wr_char_len(filep_for_stg(wrap_state, stg, outfile), var->vdim,
@@ -2116,7 +2120,7 @@ list_decls(FILE *outfile)
 
 	if (wrap_state) {
 		nice_printf(outfile, "\n/* Module state */\n");
-		nice_printf(outfile, "%s_state_t* __state = get_%s_state();\n", wrap_module_name, wrap_module_name);
+		nice_printf(outfile, "%s_state_t* __state = get_%s_state(__global_state);\n", wrap_module_name, wrap_module_name);
 	}
 
 } /* list_decls */
@@ -2425,12 +2429,13 @@ p1getn(FILE *infile, int count, char **result)
 
  static void
 #ifdef KR_headers
-proto(outfile, at, fname)
+proto(outfile, at, fname, state_name)
 	FILE *outfile;
 	Argtypes *at;
 	char *fname;
+	char *state_name;
 #else
-proto(FILE *outfile,  Argtypes *at,  char *fname)
+proto(FILE *outfile,  Argtypes *at,  char *fname,  char *state_name)
 #endif
 {
 	int i, j, k, n;
@@ -2487,18 +2492,28 @@ proto(FILE *outfile,  Argtypes *at,  char *fname)
 		}
 
 	if (!at || (n = at-> defined ? at->dnargs : at->nargs) < 0) {
-		nice_printf(outfile, Ansi == 1 ? "()" : "(...)");
+		if (wrap_state)
+			nice_printf(outfile, Ansi == 1 ? "(%s_t*)" : "(%s_t*, ...)", state_name);
+		else
+			nice_printf(outfile, Ansi == 1 ? "()" : "(...)");
 		return;
 		}
 
 	if (n == 0) {
-		nice_printf(outfile, Ansi == 1 ? "(void)" : "()");
+		if (wrap_state)
+			nice_printf(outfile, "(%s_t*)", state_name);
+		else
+			nice_printf(outfile, Ansi == 1 ? "(void)" : "()");
 		return;
 		}
 
 	atypes = at->atypes;
 	nice_printf(outfile, "(");
 	comma = "";
+	if (wrap_state) {
+		nice_printf(outfile, "%s_t*", state_name);
+		comma = ", ";
+	}
 	for(; --n >= 0; atypes++) {
 		k = atypes->type;
 		if (k == TYADDR)
