@@ -1195,7 +1195,8 @@ out_call(FILE *outfile, int op, int ftype, expptr len, expptr name, expptr args)
     done_once = ret_val ? TRUE : FALSE;
 
 /* Now run through the named arguments */
-	if (wrap_state)
+	extern int is_c_function(char *fname);
+	if (wrap_state && !is_c_function(extsymtab[name->addrblock.memno].cextname))
 		nice_printf(outfile, "%s%s", 
 			name_tag == TADDR ? "&__global_state->f2c" : "__global_state",
 			arglist ? ", " : "");

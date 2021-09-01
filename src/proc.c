@@ -222,6 +222,8 @@ putentries(FILE *outfile)
 		else if (type == TYCHAR)
 			nice_printf(outfile,
 				"%s(%d, ret_val, ret_val_len", base, k); /*)*/
+		else if (wrap_state)
+			nice_printf(outfile, "return %s(__global_state, %d", base, k); /*)*/
 		else
 			nice_printf(outfile, "return %s(%d", base, k); /*)*/
 		k++;

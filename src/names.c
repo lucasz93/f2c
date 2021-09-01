@@ -469,7 +469,7 @@ wr_state_accessor(FILE *outfile)
 		nice_printf(outfile, "extern %s_init_t __%s_init;\n", wrap_module_name, wrap_module_name);
 	}
 
-	nice_printf(outfile, "static inline %s_state_t* get_%s_state(%s_t* state) {\n", wrap_module_name, wrap_module_name, wrap_name);
+	nice_printf(outfile, "static %s_state_t* get_%s_state(%s_t* state) {\n", wrap_module_name, wrap_module_name, wrap_name);
 
 	if (has_initialized_state)
 	{

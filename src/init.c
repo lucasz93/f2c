@@ -541,16 +541,26 @@ write_interface_source(char **ffiles)
 	nice_printf(src, "#include \"__%s_state.h\"\n", wrap_name);
 	nice_printf(src, "#undef abs\n", wrap_name);
 	nice_printf(src, "#include <stdlib.h>\n", wrap_name);
+	nice_printf(src, "#include <string.h>\n", wrap_name);
 
 	/* init */
 	{
 		nice_printf(src, "void* %s_alloc() {\n", wrap_name);
+		nice_printf(src, "	int ch;\n");
+		nice_printf(src, "	char *s;\n");
 		nice_printf(src, "	%s_t* state = calloc(1, sizeof(%s_t));\n", wrap_name, wrap_name);
 		nice_printf(src, "	f2c_state_t* f2c = &state->f2c;\n");
+		nice_printf(src, "	f2c->parent = state;\n");
 		nice_printf(src, "	f2c->read_non_native = 0;\n");
 		nice_printf(src, "	f2c->f__init = 0;\n");
 		nice_printf(src, "	f2c->f__buf = f2c->f__buf0;\n");
 		nice_printf(src, "	f2c->f__buflen = sizeof(f2c->f__buf0);\n");
+		nice_printf(src, "	s = \"0123456789\";\n");
+		nice_printf(src, "	while(ch = *s++)\n");
+		nice_printf(src, "		f2c->hex[ch] = ch - '0' + 1;\n");
+		nice_printf(src, "	s = \"ABCDEF\";\n");
+		nice_printf(src, "	while(ch = *s++)\n");
+		nice_printf(src, "		f2c->hex[ch] = f2c->hex[ch + 'a' - 'A'] = ch - 'A' + 11;\n");
 		nice_printf(src, "#ifdef USER_T\n");
 		nice_printf(src, "	__%s_init_user(&state->user);\n", wrap_name);
 		nice_printf(src, "#endif\n");

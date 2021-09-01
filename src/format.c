@@ -85,6 +85,13 @@ extern int gflag, sharp_line;
 int gflag1;
 extern char *parens;
 
+const char *c_stdlib_functions[] = {
+	"sin", "asin", "sinh",
+	"cos", "acos", "cosh",
+	"tan", "atan2", 
+	"sqrt", "log", "exp"
+};
+
  void
 start_formatting(Void)
 {
@@ -2427,6 +2434,17 @@ p1getn(FILE *infile, int count, char **result)
     return feof (infile) ? EOF : 1;
 } /* p1getn */
 
+int is_c_function(char *fname)
+{
+	for (int i = 0; i < sizeof(c_stdlib_functions) / sizeof(c_stdlib_functions[0]); i++)
+	{
+		if (!strcmp(fname, c_stdlib_functions[i]))
+			return 1;
+	}
+
+	return 0;
+}
+
  static void
 #ifdef KR_headers
 proto(outfile, at, fname, state_name)
@@ -2510,7 +2528,7 @@ proto(FILE *outfile,  Argtypes *at,  char *fname,  char *state_name)
 	atypes = at->atypes;
 	nice_printf(outfile, "(");
 	comma = "";
-	if (wrap_state) {
+	if (wrap_state && !is_c_function(fname)) {
 		nice_printf(outfile, "%s_t*", state_name);
 		comma = ", ";
 	}
