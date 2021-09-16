@@ -620,8 +620,10 @@ sed \"s/^\\/\\*>>>'\\(.*\\)'<<<\\*\\/\\$/cat >'\\1' <<'\\/*<<<\\1>>>*\\/'/\" | /
 		nice_printf(c_output,
 			"#ifdef __cplusplus\nextern \"C\" {\n#endif\n");
 	nice_printf (c_output, "%s#include \"f2c.h\"\n", def_i2);
-	if (wrap_state)
+	if (wrap_state) {
 		nice_printf (c_output, "#include \"__%s_state.h\"\n", wrap_name);
+		/*nice_printf (c_output, "#include \"fprocs.h\"\n");*/
+	}
 	nice_printf (c_output, "\n\n");
 	if (gflag)
 		nice_printf (c_output, "#line 1 \"%s\"\n", file_name);
