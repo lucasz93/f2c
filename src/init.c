@@ -510,6 +510,7 @@ write_interface_header(Void)
 	nice_printf(header, "void* %s_alloc(); /* Readies the library for use in the current thread. */\n", wrap_name);
 	nice_printf(header, "void* %s_copy(void* state); /* Deep copy of the given state. */\n", wrap_name);
 	nice_printf(header, "void  %s_free(void* state); /* Releases state memory. */\n", wrap_name);
+	nice_printf(header, "void* %s_get_f2c(void* state); /* Gets the F2C state pointer for this library. */\n", wrap_name);
 
 	nice_printf(header, "#ifdef __cplusplus\n", wrap_name);
 	nice_printf(header, "}\n", wrap_name);
@@ -614,6 +615,14 @@ write_interface_source(char **ffiles)
 		}
 
 		nice_printf(src, "	free(state);\n");
+		nice_printf(src, "}\n\n");
+	}
+
+	/* free */
+	{
+		nice_printf(src, "void* %s_get_f2c(void* s) {\n", wrap_name);
+		nice_printf(src, "	%s_t* state = s;\n", wrap_name);
+		nice_printf(src, "	return &state->f2c;\n");
 		nice_printf(src, "}\n\n");
 	}
 
